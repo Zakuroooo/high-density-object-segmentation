@@ -35,6 +35,7 @@ def watershed_segmentation(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
     # Step 2: Gaussian blur to reduce noise
+    # TODO: maybe try a different blur kernel size later if time permits
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
     # Step 3: Otsu thresholding
@@ -97,6 +98,7 @@ def kmeans_color_segmentation(image, k=5):
     pixels = image.reshape(-1, 3).astype(np.float32)
 
     # Step 2: KMeans clustering
+    # tweaked k=5 here, seems to work best for now
     kmeans = KMeans(n_clusters=k, n_init=3, max_iter=100, random_state=42)
     labels = kmeans.fit_predict(pixels)
     label_map = labels.reshape(h, w)
