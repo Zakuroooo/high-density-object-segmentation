@@ -1,0 +1,26 @@
+{
+  "total_images": 5000,
+  "total_annotations": 36335,
+  "num_categories": 80,
+  "avg_objects_per_image": 7.27,
+  "min_objects_per_image": 0,
+  "max_objects_per_image": 62,
+  "density_groups": {
+    "1-5_low": 2769,
+    "5-15_medium": 1541,
+    "15-30_high": 577,
+    "30-50_very_high": 60
+  },
+  "top_10_categories": {
+    "person": 10777,
+    "car": 1918,
+    "chair": 1771,
+    "book": 1129,
+    "bottle": 1013,
+    "cup": 895,
+    "dining table": 695,
+    "traffic light": 634,
+    "bowl": 623,
+    "handbag": 540
+  }
+}
