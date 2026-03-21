@@ -1,0 +1,617 @@
+{
+  "num_images_evaluated": 100,
+  "watershed": {
+    "avg_predicted_count": 4.41,
+    "avg_gt_count": 12.04,
+    "mae": 8.47,
+    "accuracy_within_3": 24.0
+  },
+  "kmeans": {
+    "avg_predicted_count": 127.55,
+    "avg_gt_count": 12.04,
+    "mae": 115.51,
+    "accuracy_within_3": 0.0
+  },
+  "per_image_results": [
+    {
+      "image_id": 110211,
+      "gt_count": 5,
+      "watershed_count": 14,
+      "kmeans_count": 141
+    },
+    {
+      "image_id": 20571,
+      "gt_count": 12,
+      "watershed_count": 5,
+      "kmeans_count": 225
+    },
+    {
+      "image_id": 267537,
+      "gt_count": 25,
+      "watershed_count": 21,
+      "kmeans_count": 284
+    },
+    {
+      "image_id": 235241,
+      "gt_count": 7,
+      "watershed_count": 3,
+      "kmeans_count": 65
+    },
+    {
+      "image_id": 215245,
+      "gt_count": 7,
+      "watershed_count": 4,
+      "kmeans_count": 61
+    },
+    {
+      "image_id": 139099,
+      "gt_count": 29,
+      "watershed_count": 1,
+      "kmeans_count": 266
+    },
+    {
+      "image_id": 99053,
+      "gt_count": 8,
+      "watershed_count": 2,
+      "kmeans_count": 81
+    },
+    {
+      "image_id": 527215,
+      "gt_count": 7,
+      "watershed_count": 2,
+      "kmeans_count": 117
+    },
+    {
+      "image_id": 84241,
+      "gt_count": 18,
+      "watershed_count": 18,
+      "kmeans_count": 149
+    },
+    {
+      "image_id": 570688,
+      "gt_count": 35,
+      "watershed_count": 8,
+      "kmeans_count": 93
+    },
+    {
+      "image_id": 410650,
+      "gt_count": 28,
+      "watershed_count": 2,
+      "kmeans_count": 194
+    },
+    {
+      "image_id": 28449,
+      "gt_count": 5,
+      "watershed_count": 5,
+      "kmeans_count": 105
+    },
+    {
+      "image_id": 25986,
+      "gt_count": 18,
+      "watershed_count": 6,
+      "kmeans_count": 151
+    },
+    {
+      "image_id": 90891,
+      "gt_count": 18,
+      "watershed_count": 7,
+      "kmeans_count": 173
+    },
+    {
+      "image_id": 211825,
+      "gt_count": 6,
+      "watershed_count": 3,
+      "kmeans_count": 88
+    },
+    {
+      "image_id": 226147,
+      "gt_count": 21,
+      "watershed_count": 2,
+      "kmeans_count": 134
+    },
+    {
+      "image_id": 485972,
+      "gt_count": 6,
+      "watershed_count": 2,
+      "kmeans_count": 53
+    },
+    {
+      "image_id": 23034,
+      "gt_count": 5,
+      "watershed_count": 2,
+      "kmeans_count": 138
+    },
+    {
+      "image_id": 542423,
+      "gt_count": 14,
+      "watershed_count": 1,
+      "kmeans_count": 103
+    },
+    {
+      "image_id": 189752,
+      "gt_count": 13,
+      "watershed_count": 2,
+      "kmeans_count": 149
+    },
+    {
+      "image_id": 527029,
+      "gt_count": 15,
+      "watershed_count": 4,
+      "kmeans_count": 164
+    },
+    {
+      "image_id": 408120,
+      "gt_count": 5,
+      "watershed_count": 3,
+      "kmeans_count": 113
+    },
+    {
+      "image_id": 213086,
+      "gt_count": 5,
+      "watershed_count": 3,
+      "kmeans_count": 72
+    },
+    {
+      "image_id": 435880,
+      "gt_count": 7,
+      "watershed_count": 5,
+      "kmeans_count": 98
+    },
+    {
+      "image_id": 569976,
+      "gt_count": 7,
+      "watershed_count": 7,
+      "kmeans_count": 76
+    },
+    {
+      "image_id": 272566,
+      "gt_count": 19,
+      "watershed_count": 4,
+      "kmeans_count": 271
+    },
+    {
+      "image_id": 5992,
+      "gt_count": 5,
+      "watershed_count": 2,
+      "kmeans_count": 92
+    },
+    {
+      "image_id": 156076,
+      "gt_count": 19,
+      "watershed_count": 3,
+      "kmeans_count": 259
+    },
+    {
+      "image_id": 410880,
+      "gt_count": 10,
+      "watershed_count": 1,
+      "kmeans_count": 117
+    },
+    {
+      "image_id": 328238,
+      "gt_count": 13,
+      "watershed_count": 4,
+      "kmeans_count": 183
+    },
+    {
+      "image_id": 272148,
+      "gt_count": 21,
+      "watershed_count": 2,
+      "kmeans_count": 49
+    },
+    {
+      "image_id": 152740,
+      "gt_count": 14,
+      "watershed_count": 17,
+      "kmeans_count": 191
+    },
+    {
+      "image_id": 209142,
+      "gt_count": 13,
+      "watershed_count": 23,
+      "kmeans_count": 229
+    },
+    {
+      "image_id": 325031,
+      "gt_count": 16,
+      "watershed_count": 2,
+      "kmeans_count": 186
+    },
+    {
+      "image_id": 99039,
+      "gt_count": 13,
+      "watershed_count": 1,
+      "kmeans_count": 169
+    },
+    {
+      "image_id": 89045,
+      "gt_count": 9,
+      "watershed_count": 5,
+      "kmeans_count": 135
+    },
+    {
+      "image_id": 369675,
+      "gt_count": 8,
+      "watershed_count": 3,
+      "kmeans_count": 148
+    },
+    {
+      "image_id": 93717,
+      "gt_count": 22,
+      "watershed_count": 1,
+      "kmeans_count": 154
+    },
+    {
+      "image_id": 347664,
+      "gt_count": 13,
+      "watershed_count": 2,
+      "kmeans_count": 79
+    },
+    {
+      "image_id": 331817,
+      "gt_count": 17,
+      "watershed_count": 5,
+      "kmeans_count": 213
+    },
+    {
+      "image_id": 256916,
+      "gt_count": 9,
+      "watershed_count": 2,
+      "kmeans_count": 178
+    },
+    {
+      "image_id": 39785,
+      "gt_count": 6,
+      "watershed_count": 4,
+      "kmeans_count": 75
+    },
+    {
+      "image_id": 446005,
+      "gt_count": 5,
+      "watershed_count": 8,
+      "kmeans_count": 64
+    },
+    {
+      "image_id": 518326,
+      "gt_count": 5,
+      "watershed_count": 6,
+      "kmeans_count": 158
+    },
+    {
+      "image_id": 126107,
+      "gt_count": 8,
+      "watershed_count": 1,
+      "kmeans_count": 67
+    },
+    {
+      "image_id": 368961,
+      "gt_count": 5,
+      "watershed_count": 2,
+      "kmeans_count": 101
+    },
+    {
+      "image_id": 76468,
+      "gt_count": 25,
+      "watershed_count": 8,
+      "kmeans_count": 189
+    },
+    {
+      "image_id": 531707,
+      "gt_count": 5,
+      "watershed_count": 3,
+      "kmeans_count": 114
+    },
+    {
+      "image_id": 286422,
+      "gt_count": 6,
+      "watershed_count": 1,
+      "kmeans_count": 69
+    },
+    {
+      "image_id": 350023,
+      "gt_count": 25,
+      "watershed_count": 2,
+      "kmeans_count": 57
+    },
+    {
+      "image_id": 559547,
+      "gt_count": 6,
+      "watershed_count": 6,
+      "kmeans_count": 194
+    },
+    {
+      "image_id": 183716,
+      "gt_count": 5,
+      "watershed_count": 1,
+      "kmeans_count": 53
+    },
+    {
+      "image_id": 65798,
+      "gt_count": 17,
+      "watershed_count": 5,
+      "kmeans_count": 115
+    },
+    {
+      "image_id": 43816,
+      "gt_count": 5,
+      "watershed_count": 4,
+      "kmeans_count": 94
+    },
+    {
+      "image_id": 221754,
+      "gt_count": 15,
+      "watershed_count": 8,
+      "kmeans_count": 97
+    },
+    {
+      "image_id": 281693,
+      "gt_count": 6,
+      "watershed_count": 7,
+      "kmeans_count": 90
+    },
+    {
+      "image_id": 77460,
+      "gt_count": 26,
+      "watershed_count": 6,
+      "kmeans_count": 103
+    },
+    {
+      "image_id": 226154,
+      "gt_count": 6,
+      "watershed_count": 1,
+      "kmeans_count": 79
+    },
+    {
+      "image_id": 98018,
+      "gt_count": 5,
+      "watershed_count": 1,
+      "kmeans_count": 104
+    },
+    {
+      "image_id": 439854,
+      "gt_count": 14,
+      "watershed_count": 2,
+      "kmeans_count": 48
+    },
+    {
+      "image_id": 354753,
+      "gt_count": 9,
+      "watershed_count": 2,
+      "kmeans_count": 28
+    },
+    {
+      "image_id": 158660,
+      "gt_count": 10,
+      "watershed_count": 4,
+      "kmeans_count": 120
+    },
+    {
+      "image_id": 360661,
+      "gt_count": 7,
+      "watershed_count": 3,
+      "kmeans_count": 71
+    },
+    {
+      "image_id": 344029,
+      "gt_count": 12,
+      "watershed_count": 1,
+      "kmeans_count": 160
+    },
+    {
+      "image_id": 201676,
+      "gt_count": 7,
+      "watershed_count": 2,
+      "kmeans_count": 187
+    },
+    {
+      "image_id": 259830,
+      "gt_count": 5,
+      "watershed_count": 3,
+      "kmeans_count": 182
+    },
+    {
+      "image_id": 67213,
+      "gt_count": 14,
+      "watershed_count": 10,
+      "kmeans_count": 186
+    },
+    {
+      "image_id": 166426,
+      "gt_count": 11,
+      "watershed_count": 3,
+      "kmeans_count": 158
+    },
+    {
+      "image_id": 515982,
+      "gt_count": 5,
+      "watershed_count": 3,
+      "kmeans_count": 75
+    },
+    {
+      "image_id": 234607,
+      "gt_count": 5,
+      "watershed_count": 5,
+      "kmeans_count": 98
+    },
+    {
+      "image_id": 159399,
+      "gt_count": 9,
+      "watershed_count": 1,
+      "kmeans_count": 37
+    },
+    {
+      "image_id": 448263,
+      "gt_count": 15,
+      "watershed_count": 8,
+      "kmeans_count": 48
+    },
+    {
+      "image_id": 369442,
+      "gt_count": 24,
+      "watershed_count": 3,
+      "kmeans_count": 166
+    },
+    {
+      "image_id": 261982,
+      "gt_count": 5,
+      "watershed_count": 7,
+      "kmeans_count": 128
+    },
+    {
+      "image_id": 537270,
+      "gt_count": 8,
+      "watershed_count": 1,
+      "kmeans_count": 102
+    },
+    {
+      "image_id": 212800,
+      "gt_count": 27,
+      "watershed_count": 5,
+      "kmeans_count": 171
+    },
+    {
+      "image_id": 313034,
+      "gt_count": 11,
+      "watershed_count": 3,
+      "kmeans_count": 88
+    },
+    {
+      "image_id": 54593,
+      "gt_count": 18,
+      "watershed_count": 7,
+      "kmeans_count": 175
+    },
+    {
+      "image_id": 222559,
+      "gt_count": 25,
+      "watershed_count": 2,
+      "kmeans_count": 69
+    },
+    {
+      "image_id": 28993,
+      "gt_count": 15,
+      "watershed_count": 6,
+      "kmeans_count": 175
+    },
+    {
+      "image_id": 303863,
+      "gt_count": 9,
+      "watershed_count": 5,
+      "kmeans_count": 202
+    },
+    {
+      "image_id": 387098,
+      "gt_count": 24,
+      "watershed_count": 5,
+      "kmeans_count": 131
+    },
+    {
+      "image_id": 260266,
+      "gt_count": 8,
+      "watershed_count": 2,
+      "kmeans_count": 63
+    },
+    {
+      "image_id": 62355,
+      "gt_count": 7,
+      "watershed_count": 1,
+      "kmeans_count": 110
+    },
+    {
+      "image_id": 203629,
+      "gt_count": 14,
+      "watershed_count": 3,
+      "kmeans_count": 153
+    },
+    {
+      "image_id": 549220,
+      "gt_count": 8,
+      "watershed_count": 2,
+      "kmeans_count": 130
+    },
+    {
+      "image_id": 303499,
+      "gt_count": 8,
+      "watershed_count": 3,
+      "kmeans_count": 42
+    },
+    {
+      "image_id": 205105,
+      "gt_count": 14,
+      "watershed_count": 2,
+      "kmeans_count": 52
+    },
+    {
+      "image_id": 480021,
+      "gt_count": 9,
+      "watershed_count": 18,
+      "kmeans_count": 214
+    },
+    {
+      "image_id": 381639,
+      "gt_count": 15,
+      "watershed_count": 6,
+      "kmeans_count": 163
+    },
+    {
+      "image_id": 445792,
+      "gt_count": 7,
+      "watershed_count": 2,
+      "kmeans_count": 44
+    },
+    {
+      "image_id": 142238,
+      "gt_count": 14,
+      "watershed_count": 1,
+      "kmeans_count": 186
+    },
+    {
+      "image_id": 257084,
+      "gt_count": 11,
+      "watershed_count": 3,
+      "kmeans_count": 113
+    },
+    {
+      "image_id": 236914,
+      "gt_count": 5,
+      "watershed_count": 2,
+      "kmeans_count": 105
+    },
+    {
+      "image_id": 542625,
+      "gt_count": 15,
+      "watershed_count": 3,
+      "kmeans_count": 142
+    },
+    {
+      "image_id": 521141,
+      "gt_count": 14,
+      "watershed_count": 1,
+      "kmeans_count": 79
+    },
+    {
+      "image_id": 255912,
+      "gt_count": 5,
+      "watershed_count": 1,
+      "kmeans_count": 166
+    },
+    {
+      "image_id": 566282,
+      "gt_count": 10,
+      "watershed_count": 5,
+      "kmeans_count": 180
+    },
+    {
+      "image_id": 415990,
+      "gt_count": 16,
+      "watershed_count": 1,
+      "kmeans_count": 80
+    },
+    {
+      "image_id": 565778,
+      "gt_count": 7,
+      "watershed_count": 11,
+      "kmeans_count": 159
+    }
+  ]
+}
