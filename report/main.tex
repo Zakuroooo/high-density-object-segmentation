@@ -1,1 +1,339 @@
-% Placeholder - will be populated in Step 7
+\documentclass[12pt, a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{caption}
+\usepackage[backend=bibtex, style=ieee]{biblatex}
+\addbibresource{refs.bib}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% ══════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── 1. Title Page ─────────────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{4cm}
+{\Huge\bfseries High-Density Object Segmentation\\[0.4cm]
+ Baseline Study\par}
+\vspace{1.5cm}
+{\Large [Student Name]\par}
+\vspace{0.5cm}
+{\large March 2026\par}
+\vfill
+{\normalsize Phase~1 — Classical Segmentation Baselines on COCO val2017}
+\end{titlepage}
+
+% ── 2. Abstract ───────────────────────────────────────────────────────
+\begin{abstract}
+Segmenting individual object instances in densely crowded images remains a
+significant challenge in computer vision.  This study evaluates two classical
+segmentation approaches — Watershed and KMeans colour clustering — on a
+subset of the COCO val2017 dataset filtered for high object density
+(5–50~objects per image).  Watershed achieved a mean absolute error (MAE) of
+8.47 in object count prediction with 24.0\% accuracy (within $\pm3$), while
+KMeans drastically over-segmented with an MAE of 115.51.  These results
+confirm that classical methods lack the representational capacity to handle
+occlusion and scale variation, motivating the exploration of learning-based
+approaches in subsequent phases.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ── 3. Introduction ──────────────────────────────────────────────────
+\section{Introduction}
+
+Instance segmentation — the task of detecting every object in an image and
+delineating its precise pixel-level boundary — is one of the most challenging
+problems in computer vision.  The difficulty increases dramatically in
+\emph{high-density} scenes where dozens of objects overlap, occlude one
+another, and vary widely in scale.
+
+Dense object segmentation has numerous real-world applications:
+\begin{itemize}
+    \item \textbf{Retail shelf analysis}: automatically counting products on
+          crowded supermarket shelves for inventory management.
+    \item \textbf{Crowd analysis}: estimating crowd density and tracking
+          individuals in surveillance footage.
+    \item \textbf{Biological cell imaging}: counting and segmenting cells in
+          microscopy images where cells frequently touch or overlap.
+\end{itemize}
+
+The fundamental obstacles in dense segmentation are twofold.  First,
+\textbf{occlusion} causes object boundaries to be partially or fully hidden,
+making it impossible to recover shape information from pixel intensities
+alone.  Second, \textbf{scale variation} means that objects in the same image
+can range from a few pixels to thousands, rendering fixed-scale processing
+pipelines inadequate.
+
+The objective of this project is to establish a rigorous baseline by applying
+classical segmentation methods to a curated dense subset of the COCO
+benchmark, quantifying their limitations, and thereby motivating the adoption
+of deep-learning methods in Phase~2.
+
+% ── 4. Literature Review ─────────────────────────────────────────────
+\section{Literature Review}
+
+\subsection{Classical Image Segmentation}
+Graph-based segmentation methods treat each pixel as a node in a graph and
+define edge weights based on visual similarity.  Felzenszwalb and
+Huttenlocher~\cite{felzenszwalb2004} proposed an efficient algorithm with
+$O(n \log n)$ complexity that merges regions greedily when the inter-region
+difference is smaller than the intra-region variation.  While elegant,
+graph-based methods struggle in dense scenes because the visual similarity
+between adjacent objects of the same category produces weak edge weights,
+leading to under-segmentation.
+
+\subsection{Watershed Algorithm}
+The Watershed algorithm, formalised by Vincent and
+Soille~\cite{vincent1991watershed}, treats the greyscale image as a
+topographic surface.  ``Water'' fills local minima (catchment basins) and
+rises until basins merge; the lines where they meet form segmentation
+boundaries.  Pre-processing with a distance transform converts the binary
+foreground into a height map so that object centres become peaks and touching
+boundaries become valleys.  However, when objects are in physical contact —
+as is common in crowded images — the valley between them vanishes, causing
+over-merging.
+
+\subsection{COCO Dataset}
+The Microsoft COCO (Common Objects in Context) dataset~\cite{lin2014coco} is
+the de facto standard benchmark for object detection and instance
+segmentation.  It contains over 200,000 labelled images across 80 object
+categories, with polygon-level annotations for each instance.  The
+validation split (val2017) used in this study contains 5,000 images and
+36,335 annotations.  COCO's emphasis on ``objects in context'' — natural
+scenes with multiple, often overlapping objects — makes it ideal for
+studying dense segmentation.
+
+\subsection{Gap Addressed by This Project}
+While individual classical methods have been evaluated on simple
+benchmarks, no single study systematically compares Watershed and colour
+clustering on a density-stratified subset of a modern benchmark like COCO.
+This project fills that gap by providing a controlled comparison that
+quantifies exactly \emph{where} and \emph{why} these methods fail as scene
+density increases.
+
+% ── 5. Dataset \& EDA ────────────────────────────────────────────────
+\section{Dataset \& Exploratory Data Analysis}
+
+\subsection{Dataset Overview}
+
+\begin{table}[H]
+\centering
+\caption{COCO val2017 summary statistics.}
+\label{tab:dataset}
+\begin{tabular}{lr}
+\toprule
+\textbf{Metric}             & \textbf{Value} \\
+\midrule
+Total images                & 5,000          \\
+Total annotations (non-crowd) & 36,335       \\
+Unique categories           & 80             \\
+Avg objects / image         & 7.27           \\
+Min objects / image         & 0              \\
+Max objects / image         & 62             \\
+Dense images (5–50 obj.)    & 2,463          \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Object Density Distribution}
+
+Figure~\ref{fig:density} shows the distribution of object counts per image.
+The vast majority of images contain fewer than 15~objects, with a sharp drop
+in frequency beyond 20.  Only 60~images (1.2\%) fall in the ``very high''
+band (30–50 objects).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/figures/density_distribution.png}
+\caption{Left: histogram of per-image object counts. Right: images grouped
+into four density bands.}
+\label{fig:density}
+\end{figure}
+
+\subsection{Category Distribution}
+
+Figure~\ref{fig:categories} shows the 20 most frequent object categories.
+\textit{Person} dominates with 10,777 annotations — more than five times
+the second-most-frequent category (\textit{car}, 1,918).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{../results/figures/category_distribution.png}
+\caption{Top 20 most frequent categories in COCO val2017.}
+\label{fig:categories}
+\end{figure}
+
+\subsection{Key Challenges}
+
+Our EDA revealed four challenges that will directly impact baseline
+performance:
+
+\begin{enumerate}
+    \item \textbf{Heavy occlusion}: in dense images, objects frequently
+          overlap, hiding boundary information.
+    \item \textbf{Scale variation}: tiny and large objects co-exist in
+          the same frame, defeating fixed-parameter methods.
+    \item \textbf{Class imbalance}: a handful of categories dominate,
+          biasing evaluation metrics.
+    \item \textbf{Boundary truncation}: objects extending beyond the
+          image frame produce incomplete masks.
+\end{enumerate}
+
+% ── 6. Methodology ───────────────────────────────────────────────────
+\section{Methodology}
+
+\subsection{Watershed Segmentation}
+
+The Watershed pipeline begins with Otsu's automatic
+thresholding~\cite{otsu1979threshold}.  Otsu finds the threshold $t^*$ that
+minimises the \emph{intra-class variance}:
+
+\begin{equation}
+\sigma^2_w(t) = w_0(t)\,\sigma^2_0(t) + w_1(t)\,\sigma^2_1(t)
+\label{eq:otsu}
+\end{equation}
+
+\noindent where $w_0(t)$ and $w_1(t)$ are the pixel fractions in each class
+(foreground and background), and $\sigma^2_0(t)$, $\sigma^2_1(t)$ are their
+respective variances.
+
+The full pipeline is:
+\begin{enumerate}
+    \item Convert the image to greyscale.
+    \item Apply Gaussian blur with a $5 \times 5$ kernel to suppress noise.
+    \item Compute a binary mask using Otsu's threshold
+          (Equation~\ref{eq:otsu}).
+    \item Apply morphological opening (erosion followed by dilation) to
+          remove small noise regions.
+    \item Compute the distance transform of the binary mask to find
+          sure-foreground peaks.
+    \item Apply the Watershed algorithm using the peaks as seed markers.
+    \item Count the number of distinct watershed basins (excluding the
+          background).
+\end{enumerate}
+
+\subsection{KMeans Colour Segmentation}
+
+KMeans clustering partitions the image pixels into $k$ groups by minimising
+the sum of squared distances to cluster centroids:
+
+\begin{equation}
+J = \sum_{i=1}^{k} \sum_{\mathbf{x} \in C_i} \|\mathbf{x} - \boldsymbol{\mu}_i\|^2
+\label{eq:kmeans}
+\end{equation}
+
+\noindent where $C_i$ is the set of pixels assigned to cluster $i$ and
+$\boldsymbol{\mu}_i$ is the cluster centroid in RGB space.
+
+The pipeline is:
+\begin{enumerate}
+    \item Reshape the image into an $(N \times 3)$ matrix of pixel colours.
+    \item Run KMeans with $k = 5$ clusters.
+    \item For each cluster, create a binary mask and run connected-component
+          analysis with a minimum area threshold of 100~pixels.
+    \item Sum the connected components across all clusters to obtain the
+          predicted object count.
+\end{enumerate}
+
+% ── 7. Results ────────────────────────────────────────────────────────
+\section{Results}
+
+Both methods were evaluated on 100 randomly sampled dense images
+(5–50~objects per image).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/figures/baseline_evaluation.png}
+\caption{Scatter plots of predicted vs.\ ground-truth object counts.
+Points on the dashed diagonal indicate correct predictions.}
+\label{fig:scatter}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Baseline performance comparison.}
+\label{tab:results}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Method} & \textbf{Avg Predicted Count} &
+\textbf{Avg GT Count} & \textbf{Accuracy (\%)} \\
+\midrule
+Watershed   & 4.41   & 12.04  & 24.0   \\
+KMeans ($k{=}5$) & 127.55 & 12.04  & 0.0    \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/figures/baseline_failures.png}
+\caption{Three images with the largest Watershed prediction error.}
+\label{fig:failures}
+\end{figure}
+
+% ── 8. Discussion ────────────────────────────────────────────────────
+\section{Discussion}
+
+\textbf{Watershed under-segments.}  Watershed predicted an average of only
+4.41~objects per image against a ground truth of 12.04.  When objects touch
+(as is common in crowded scenes), the topographic ``valley'' between them
+vanishes, and the algorithm merges them into a single basin.  The method has
+no mechanism to reason about object identity — it relies entirely on
+intensity gradients.
+
+\textbf{KMeans over-segments.}  KMeans produced an average of 127.55 regions
+per image.  Since it clusters by colour similarity alone, a single large
+background region is fragmented into many small connected components, and
+objects of similar colour are merged.  The method is fundamentally unsuited
+to instance-level segmentation.
+
+\textbf{Bias-variance perspective.}  Both methods exhibit \emph{high bias}:
+they assume that objects can be separated by simple intensity or colour
+thresholds.  This assumption is violated in real images with complex
+textures, lighting, and occlusion.  No amount of hyperparameter tuning can
+overcome this fundamental limitation — the model family itself is too
+restrictive.
+
+\textbf{Motivation for deep learning.}  These results demonstrate the need
+for methods that can learn data-driven, hierarchical features.
+Convolutional neural networks, and in particular Mask~R-CNN, can learn to
+delineate instances even under heavy occlusion by leveraging multi-scale
+feature pyramids and region proposals.
+
+% ── 9. Conclusion ────────────────────────────────────────────────────
+\section{Conclusion}
+
+This study evaluated Watershed and KMeans colour segmentation as baselines
+for object counting in dense COCO images.  Both methods failed to produce
+accurate counts: Watershed under-counted (MAE~=~8.47), while KMeans
+over-counted dramatically (MAE~=~115.51).  These results confirm that
+classical approaches lack the representational capacity to handle occlusion,
+scale variation, and complex backgrounds.
+
+In Phase~2, we will explore:
+\begin{itemize}
+    \item \textbf{HOG + SVM}: hand-crafted gradient features with a linear
+          classifier for object detection.
+    \item \textbf{Deep learning}: Mask~R-CNN and related architectures for
+          end-to-end instance segmentation.
+\end{itemize}
+
+% ── 10. References ────────────────────────────────────────────────────
+\newpage
+\printbibliography
+
+\end{document}
