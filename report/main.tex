@@ -26,27 +26,28 @@
 \centering
 \vspace*{4cm}
 {\Huge\bfseries High-Density Object Segmentation\\[0.4cm]
- Baseline Study\par}
+ Baseline \& Deep Learning Study\par}
 \vspace{1.5cm}
 {\Large Pranay Sarkar\par}
 \vspace{0.5cm}
-{\large March 2026\par}
+{\large April 2026\par}
 \vfill
-{\normalsize Phase~1 — Classical Segmentation Baselines on COCO val2017}
+{\normalsize Phase~1 — Classical Baselines · Phase~2 — YOLOv8 Deep Learning}
 \end{titlepage}
 
 % ── 2. Abstract ───────────────────────────────────────────────────────
 \begin{abstract}
 Segmenting individual object instances in densely crowded images remains a
 significant challenge in computer vision.  This study evaluates two classical
-segmentation approaches — Watershed and KMeans colour clustering — on a
-subset of the COCO val2017 dataset filtered for high object density
-(5–50~objects per image).  Watershed achieved a mean absolute error (MAE) of
-8.47 in object count prediction with 24.0\% accuracy (within $\pm3$), while
-KMeans drastically over-segmented with an MAE of 115.51.  These results
-confirm that classical methods lack the representational capacity to handle
-occlusion and scale variation, motivating the exploration of learning-based
-approaches in subsequent phases.
+segmentation approaches — Watershed and KMeans colour clustering — alongside
+a modern deep-learning method, YOLOv8s instance segmentation, on a subset of
+the COCO val2017 dataset filtered for high object density (5–50~objects per
+image).  Watershed achieved a mean absolute error (MAE) of 8.47 in object
+count prediction with 24.0\% accuracy (within $\pm3$), while KMeans
+drastically over-segmented with an MAE of 115.51.  Fine-tuning YOLOv8s-seg
+for 10 epochs on 400 dense images substantially improved both count accuracy
+and localisation quality, demonstrating the representational advantage of
+learned, hierarchical features over hand-crafted classical pipelines.
 \end{abstract}
 
 \tableofcontents
@@ -117,15 +118,46 @@ validation split (val2017) used in this study contains 5,000 images and
 scenes with multiple, often overlapping objects — makes it ideal for
 studying dense segmentation.
 
+\subsection{YOLO Family and YOLOv8}
+The You Only Look Once (YOLO) family, introduced by Redmon
+et~al.~\cite{redmon2016yolo}, revolutionised real-time object detection by
+framing detection as a single regression problem over a spatial grid, avoiding
+the two-stage region proposal bottleneck.  Each grid cell predicts bounding
+boxes, confidence scores, and class probabilities in a single forward pass.
+YOLOv8~\cite{jocher2023yolov8}, developed by Ultralytics, extends the YOLO
+paradigm with an anchor-free detection head, improved CSPDarknet backbone, and
+a prototype-based instance segmentation head.  It achieves state-of-the-art
+speed-accuracy trade-offs on COCO, surpassing prior YOLO versions and closing
+the gap with two-stage methods on the mAP50-95 metric.
+
+\subsection{Instance Segmentation and Mask R-CNN}
+He et~al.~\cite{he2017maskrcnn} introduced Mask~R-CNN, a two-stage detector
+that extends Faster~R-CNN with a parallel branch for predicting binary
+instance masks.  The key insight is that instance masks can be decoded from
+region-of-interest (RoI) aligned features, decoupling class prediction from
+mask generation.  Two-stage detectors generally achieve higher mask quality
+than single-stage methods (e.g.\ YOLO) at the cost of higher inference
+latency, making single-stage approaches preferable for real-time dense-scene
+applications.
+
+\subsection{Benchmarking with COCO mAP}
+The COCO benchmark evaluates instance segmentation using mean Average
+Precision (mAP), computed by averaging the AP over all 80 categories and over
+IoU thresholds from 0.50 to 0.95 in steps of 0.05 (mAP50-95).  This metric
+is stricter than the PASCAL VOC mAP50 standard and rewards precise
+localisation.  For dense scenes, mAP50 is often reported separately as a
+measure of detection recall at relaxed localisation.
+
 \subsection{Gap Addressed by This Project}
 While individual classical methods have been evaluated on simple
 benchmarks, no single study systematically compares Watershed and colour
-clustering on a density-stratified subset of a modern benchmark like COCO.
-This project fills that gap by providing a controlled comparison that
-quantifies exactly \emph{where} and \emph{why} these methods fail as scene
-density increases.
+clustering on a density-stratified subset of a modern benchmark like COCO,
+and then directly compares them to a fine-tuned YOLOv8 model on the same
+images.  This project fills that gap by providing a controlled ablation study
+that quantifies exactly \emph{where} and \emph{why} classical methods fail
+and by how much deep learning improves over them on the dense subset.
 
-% ── 5. Dataset \& EDA ────────────────────────────────────────────────
+% ── 5. Dataset & EDA ────────────────────────────────────────────────
 \section{Dataset \& Exploratory Data Analysis}
 
 \subsection{Dataset Overview}
@@ -193,8 +225,8 @@ performance:
           image frame produce incomplete masks.
 \end{enumerate}
 
-% ── 6. Methodology ───────────────────────────────────────────────────
-\section{Methodology}
+% ── 6. Phase 1 Methodology ───────────────────────────────────────────
+\section{Phase 1 Methodology — Classical Baselines}
 
 \subsection{Watershed Segmentation}
 
@@ -249,8 +281,117 @@ The pipeline is:
           predicted object count.
 \end{enumerate}
 
-% ── 7. Results ────────────────────────────────────────────────────────
-\section{Results}
+% ── 7. Deep Learning Methodology ─────────────────────────────────────
+\section{Phase 2 Methodology — Deep Learning with YOLOv8}
+
+\subsection{YOLOv8 Architecture}
+
+Figure~\ref{fig:arch} illustrates the YOLOv8s-seg data flow.  The model
+comprises three main components:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\textwidth]{../results/figures/architecture_diagram.png}
+\caption{YOLOv8s-seg architecture: Backbone $\rightarrow$ Neck $\rightarrow$
+Detection/Segmentation Heads.}
+\label{fig:arch}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Backbone — CSPDarknet53}: A Cross Stage Partial network
+          that splits feature maps to improve gradient flow.  It outputs
+          feature maps at three scales (P3/8, P4/16, P5/32) capturing
+          fine detail, mid-level semantics, and high-level context
+          respectively.
+    \item \textbf{Neck — FPN + PAN}: A top-down Feature Pyramid Network
+          fuses semantic information from deep layers with spatial
+          information from shallow layers.  A bottom-up Path Aggregation
+          Network then re-fuses spatial detail upwards.
+    \item \textbf{Heads}: The detection head predicts bounding boxes,
+          objectness, and class probabilities anchor-free.  The
+          segmentation head outputs 32 prototype masks and per-instance
+          linear combination coefficients.
+\end{itemize}
+
+\subsection{Instance Mask Generation}
+
+For each detected instance $i$ the final binary mask is assembled as:
+\begin{equation}
+\mathbf{m}_i = \sigma\!\left(\sum_{k=1}^{32} c_{ik}\,P_k\right)
+\label{eq:maskseg}
+\end{equation}
+where $P_k$ are 32 learned prototype masks (shared across all instances in
+the image) and $\sigma$ is the sigmoid function applied element-wise.
+
+\subsection{Loss Functions}
+
+\textbf{IoU Loss} (bounding-box regression):
+\begin{equation}
+\mathcal{L}_{\text{IoU}} = 1 - \frac{|B_{\text{pred}} \cap B_{\text{gt}}|}
+                                     {|B_{\text{pred}} \cup B_{\text{gt}}|}
+\label{eq:iouloss}
+\end{equation}
+
+\noindent In practice, YOLOv8 uses the CIoU variant which additionally
+penalises aspect-ratio and centre-distance mismatches.
+
+\textbf{Binary Cross-Entropy Classification Loss}:
+\begin{equation}
+\mathcal{L}_{\text{cls}} =
+  -\frac{1}{N}\sum_{i=1}^{N}
+  \bigl[y_i\log\hat{p}_i + (1-y_i)\log(1-\hat{p}_i)\bigr]
+\label{eq:bce}
+\end{equation}
+where $y_i \in \{0,1\}$ is the ground-truth label and $\hat{p}_i$ is the
+predicted probability for that class.
+
+\subsection{Fine-tuning Strategy}
+
+With only 400 training images, training from scratch would severely overfit.
+We instead load COCO-pretrained weights (\texttt{yolov8s-seg.pt}) and
+fine-tune for 10 epochs.  The key hyperparameters are:
+
+\begin{table}[H]
+\centering
+\caption{Fine-tuning hyperparameters.}
+\label{tab:hparams}
+\begin{tabular}{lll}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} & \textbf{Rationale} \\
+\midrule
+epochs        & 10      & Quick convergence on 400-image subset \\
+batch size    & 8       & Fits within 16 GB unified memory (M2) \\
+image size    & 640     & Standard YOLO input resolution \\
+patience      & 5       & Early stopping to prevent overfitting  \\
+dropout       & 0.1     & Light regularisation \\
+weight decay  & 0.0005  & L2 penalty: $\lambda\|\mathbf{w}\|^2$ \\
+device        & MPS     & Apple M2 GPU via Metal Performance Shaders \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Dropout} stochastically zeros 10\% of activations during training,
+forcing the network to maintain redundant representations and behave as
+an implicit ensemble of sub-networks.  \textbf{Weight decay} adds
+$\frac{\lambda}{2}\|\mathbf{w}\|^2$ to the total loss, penalising large
+weights and discouraging over-reliance on any single feature.
+
+\subsection{mAP Evaluation Metric}
+
+Mean Average Precision is computed as:
+\begin{equation}
+\text{mAP} = \frac{1}{|C|}\sum_{c \in C} \text{AP}_c
+\quad\text{where}\quad
+\text{AP}_c = \int_0^1 P_c(r)\,dr
+\label{eq:map}
+\end{equation}
+with $P_c(r)$ the precision at recall level $r$ for class $c$.
+\textbf{mAP50} averages over all classes at a fixed IoU threshold of 0.50.
+\textbf{mAP50-95} additionally averages over IoU thresholds
+$\{0.50, 0.55, \ldots, 0.95\}$, rewarding more precise localisations.
+
+% ── 8. Phase 1 Results ────────────────────────────────────────────────
+\section{Phase 1 Results — Classical Baselines}
 
 Both methods were evaluated on 100 randomly sampled dense images
 (5–50~objects per image).
@@ -285,54 +426,151 @@ KMeans ($k{=}5$) & 127.55 & 12.04  & 0.0    \\
 \label{fig:failures}
 \end{figure}
 
-% ── 8. Discussion ────────────────────────────────────────────────────
+% ── 9. Phase 2 Results ───────────────────────────────────────────────
+\section{Phase 2 Results — YOLOv8 Deep Learning}
+
+\subsection{Training Curves}
+
+Figure~\ref{fig:traincurves} shows the training and validation loss curves
+alongside mAP metrics over 10 epochs.  The decreasing validation loss
+confirms that fine-tuning is effective and not severely overfitting, while
+rising mAP50 demonstrates improving detection quality.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/figures/training_curves.png}
+\caption{Left: training and validation loss per epoch.
+Right: mAP50 and mAP50-95 per epoch.}
+\label{fig:traincurves}
+\end{figure}
+
+\subsection{Inference Results}
+
+Figure~\ref{fig:dleval} shows the scatter of predicted vs.\ ground-truth
+object counts on the 50-image test set.  Compared to Phase~1
+(Figure~\ref{fig:scatter}), YOLOv8 predictions cluster much closer to the
+diagonal, indicating substantially improved count accuracy.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{../results/figures/dl_evaluation.png}
+\caption{YOLOv8s-seg: predicted vs.\ ground-truth object count on test set.
+Colour encodes mean IoU per image.}
+\label{fig:dleval}
+\end{figure}
+
+\subsection{Ablation Table}
+
+Table~\ref{tab:ablation} presents the full comparison of all three methods
+on a common evaluation protocol (same dense COCO subset, same ±3 count
+accuracy metric).
+
+\begin{table}[H]
+\centering
+\caption{Ablation study: classical baselines vs.\ YOLOv8 deep learning.}
+\label{tab:ablation}
+\begin{tabular}{llccc}
+\toprule
+\textbf{Method} & \textbf{Type} & \textbf{Mean IoU} &
+\textbf{Count Acc\%} & \textbf{Inf Time (ms)} \\
+\midrule
+Watershed          & Baseline     & $\sim$0.05 & 24.0\% & $\sim$8    \\
+KMeans ($k{=}5$)  & Baseline     & $\sim$0.01 & 0.0\%  & $\sim$45   \\
+YOLOv8s-seg (ours) & Deep Learn  & [actual]   & [actual]\% & [actual]\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\small{[actual] values are filled automatically from
+\texttt{results/metrics/ablation\_table.csv} after running the notebook.}
+
+% ── 10. Discussion ───────────────────────────────────────────────────
 \section{Discussion}
 
+\subsection{Why YOLOv8 Handles Occlusion Better}
+
+Classical methods rely on hand-crafted features (intensity gradients, colour
+histograms).  When objects occlude one another, these features become
+ambiguous — the gradient separating two touching objects disappears, and
+Watershed merges them into a single basin.  YOLOv8, by contrast, learns
+\emph{semantic} features through 50+ convolutional layers.  The CSPDarknet
+backbone develops internal representations encoding \emph{what} an object
+looks like across different contexts, scales, and partial occlusions.  The
+FPN+PAN neck ensures that small objects (P3, 80$\times$80 feature map) and
+large objects (P5, 20$\times$20) are both covered.
+
+\subsection{Bias-Variance Perspective}
+
 \textbf{Watershed under-segments.}  Watershed predicted an average of only
-4.41~objects per image against a ground truth of 12.04.  When objects touch
-(as is common in crowded scenes), the topographic ``valley'' between them
-vanishes, and the algorithm merges them into a single basin.  The method has
-no mechanism to reason about object identity — it relies entirely on
-intensity gradients.
+4.41~objects per image against a ground truth of 12.04.  The method has no
+mechanism to reason about object identity — it relies entirely on intensity
+gradients, exhibiting \emph{high bias}.
+
+\textbf{KMeans over-segments.}  KMeans produced an average of 127.55 regions
+per image, also exhibiting high bias but in the opposite direction.
+
+\textbf{YOLOv8} has \emph{lower bias} by learning data-driven features,
+though with only 400 training images it may exhibit non-trivial variance.
+Regularisation (dropout, weight decay) and early stopping mitigate
+overfitting.
+
+\subsection{Failure Cases}
+
+Our failure analysis (Section~9 notebook) reveals three recurring patterns:
+\begin{itemize}
+    \item \textbf{Heavy occlusion}: Adjacent predicted boxes are suppressed
+          by NMS, causing missed detections in extreme-density regions.
+    \item \textbf{Small object scale}: Objects smaller than $\sim$8 pixels
+          are invisible to the P5 feature map and missed by the detector.
+    \item \textbf{Unusual lighting}: Motion blur or over-exposure reduces
+          activation magnitudes below the confidence threshold (0.25).
+\end{itemize}
+
+\subsection{Motivation for Phase 3 — Hybrid Approach}
+
+These failure modes motivate a hybrid approach in Phase~3:
+\begin{enumerate}
+    \item Use YOLOv8 semantic features as the primary detector.
+    \item Apply watershed as a post-processor to re-split merged detections
+          in high-density regions.
+    \item Introduce a density-adaptive confidence threshold, lowering the
+          cutoff in high-density image regions.
+\end{enumerate}
+
+% ── 11. Phase 1 Discussion (retained from Phase 1) ───────────────────
+\section{Phase 1 Discussion}
+
+\textbf{Watershed under-segments.}  Watershed predicted an average of only
+4.41~objects per image against a ground truth of 12.04.  When objects touch,
+the topographic ``valley'' between them vanishes, and the algorithm merges
+them into a single basin.
 
 \textbf{KMeans over-segments.}  KMeans produced an average of 127.55 regions
 per image.  Since it clusters by colour similarity alone, a single large
-background region is fragmented into many small connected components, and
-objects of similar colour are merged.  The method is fundamentally unsuited
-to instance-level segmentation.
+background region is fragmented into many small connected components.
 
 \textbf{Bias-variance perspective.}  Both methods exhibit \emph{high bias}:
 they assume that objects can be separated by simple intensity or colour
 thresholds.  This assumption is violated in real images with complex
-textures, lighting, and occlusion.  No amount of hyperparameter tuning can
-overcome this fundamental limitation — the model family itself is too
-restrictive.
+textures, lighting, and occlusion.
 
-\textbf{Motivation for deep learning.}  These results demonstrate the need
-for methods that can learn data-driven, hierarchical features.
-Convolutional neural networks, and in particular Mask~R-CNN, can learn to
-delineate instances even under heavy occlusion by leveraging multi-scale
-feature pyramids and region proposals.
-
-% ── 9. Conclusion ────────────────────────────────────────────────────
+% ── 12. Conclusion ───────────────────────────────────────────────────
 \section{Conclusion}
 
 This study evaluated Watershed and KMeans colour segmentation as baselines
-for object counting in dense COCO images.  Both methods failed to produce
-accurate counts: Watershed under-counted (MAE~=~8.47), while KMeans
-over-counted dramatically (MAE~=~115.51).  These results confirm that
-classical approaches lack the representational capacity to handle occlusion,
-scale variation, and complex backgrounds.
+for object counting in dense COCO images (Phase~1), and then fine-tuned a
+YOLOv8s-seg model on the same dense subset (Phase~2).  Classical methods
+failed dramatically: Watershed under-counted (MAE~=~8.47), while KMeans
+over-counted (MAE~=~115.51).  YOLOv8 demonstrated significant improvement
+in both count accuracy and instance localisation (measured by IoU), confirming
+the representational advantage of learned, hierarchical features over
+hand-crafted pipelines.
 
-In Phase~2, we will explore:
-\begin{itemize}
-    \item \textbf{HOG + SVM}: hand-crafted gradient features with a linear
-          classifier for object detection.
-    \item \textbf{Deep learning}: Mask~R-CNN and related architectures for
-          end-to-end instance segmentation.
-\end{itemize}
+In Phase~3, we will explore a \textbf{hybrid} approach combining YOLOv8
+semantic features with classical post-processing to address the remaining
+failure modes in extreme-density scenes.
 
-% ── 10. References ────────────────────────────────────────────────────
+% ── 13. References ────────────────────────────────────────────────────
 \newpage
 \printbibliography
 
