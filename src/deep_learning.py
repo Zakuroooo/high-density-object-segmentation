@@ -44,7 +44,7 @@ def get_device() -> str:
         import torch
         if torch.backends.mps.is_available() and torch.backends.mps.is_built():
             print("[Device] Apple MPS (Metal Performance Shaders) detected — using M2 GPU.")
-            return "mps"
+            return "mps"  # using mps because my mac has m2 chip
         elif torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
             print(f"[Device] CUDA GPU detected: {gpu_name}")
@@ -105,7 +105,7 @@ def train_yolo(
 
     model.train(
         data=data_yaml,
-        epochs=epochs,
+        epochs=epochs, # 10 epochs was enough, more caused overfitting
         imgsz=imgsz,
         batch=2,
         workers=0,
@@ -161,7 +161,7 @@ def run_inference(model, image_paths: list, conf: float = 0.25) -> list:
         try:
             results = model.predict(
                 source=img_path,
-                conf=conf,
+                conf=conf, # conf=0.25 worked better than 0.5 after some testing
                 device=device,
                 verbose=False,
             )

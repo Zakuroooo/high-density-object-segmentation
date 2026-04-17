@@ -8,7 +8,7 @@
 \usepackage{hyperref}
 \usepackage{float}
 \usepackage{caption}
-\usepackage[backend=bibtex, style=ieee]{biblatex}
+\usepackage[backend=biber, style=ieee]{biblatex}
 \addbibresource{refs.bib}
 
 \hypersetup{
@@ -190,7 +190,7 @@ band (30–50 objects).
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{../results/figures/density_distribution.png}
+\includegraphics[width=0.95\textwidth]{density_distribution.png}
 \caption{Left: histogram of per-image object counts. Right: images grouped
 into four density bands.}
 \label{fig:density}
@@ -204,7 +204,7 @@ the second-most-frequent category (\textit{car}, 1,918).
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{../results/figures/category_distribution.png}
+\includegraphics[width=0.85\textwidth]{category_distribution.png}
 \caption{Top 20 most frequent categories in COCO val2017.}
 \label{fig:categories}
 \end{figure}
@@ -291,7 +291,7 @@ comprises three main components:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.80\textwidth]{../results/figures/architecture_diagram.png}
+\includegraphics[width=0.80\textwidth]{architecture_diagram.png}
 \caption{YOLOv8s-seg architecture: Backbone $\rightarrow$ Neck $\rightarrow$
 Detection/Segmentation Heads.}
 \label{fig:arch}
@@ -398,7 +398,7 @@ Both methods were evaluated on 100 randomly sampled dense images
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{../results/figures/baseline_evaluation.png}
+\includegraphics[width=0.95\textwidth]{baseline_evaluation.png}
 \caption{Scatter plots of predicted vs.\ ground-truth object counts.
 Points on the dashed diagonal indicate correct predictions.}
 \label{fig:scatter}
@@ -421,7 +421,7 @@ KMeans ($k{=}5$) & 127.55 & 12.04  & 0.0    \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{../results/figures/baseline_failures.png}
+\includegraphics[width=0.95\textwidth]{baseline_failures.png}
 \caption{Three images with the largest Watershed prediction error.}
 \label{fig:failures}
 \end{figure}
@@ -438,7 +438,7 @@ rising mAP50 demonstrates improving detection quality.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{../results/figures/training_curves.png}
+\includegraphics[width=0.95\textwidth]{training_curves.png}
 \caption{Left: training and validation loss per epoch.
 Right: mAP50 and mAP50-95 per epoch.}
 \label{fig:traincurves}
@@ -453,7 +453,7 @@ diagonal, indicating substantially improved count accuracy.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.75\textwidth]{../results/figures/dl_evaluation.png}
+\includegraphics[width=0.75\textwidth]{dl_evaluation.png}
 \caption{YOLOv8s-seg: predicted vs.\ ground-truth object count on test set.
 Colour encodes mean IoU per image.}
 \label{fig:dleval}
@@ -461,14 +461,14 @@ Colour encodes mean IoU per image.}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{../results/figures/yolo_predictions_grid.png}
+\includegraphics[width=0.95\textwidth]{yolo_predictions_grid.png}
 \caption{YOLOv8s-seg: Sample predictions on the test set.}
 \label{fig:yologrid}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{../results/figures/dl_successes.png}
+\includegraphics[width=0.95\textwidth]{dl_successes.png}
 \caption{YOLOv8s-seg: Successful instances of dense object segmentation.}
 \label{fig:dlsuccess}
 \end{figure}
@@ -542,7 +542,7 @@ Our failure analysis (Section~9 notebook) reveals three recurring patterns:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{../results/figures/dl_failures.png}
+\includegraphics[width=0.95\textwidth]{dl_failures.png}
 \caption{YOLOv8s-seg: Common failure modes including occlusion and lighting issues.}
 \label{fig:dlfail}
 \end{figure}

@@ -1,5 +1,7 @@
 # High-Density Object Segmentation
 
+This is my Phase 2 project for the High-Density Object Segmentation course assignment.
+
 **Author:** Pranay Sarkar  
 **Institution:** Newton School of Technology  
 **Phases:** Classical Baselines (Phase 1) · YOLOv8 Deep Learning (Phase 2)
@@ -139,3 +141,10 @@ pdflatex main.tex
   url    = {https://github.com/Zakuroooo/high-density-object-segmentation}
 }
 ```
+
+---
+
+## What I learned
+- I thought classical methods would at least catch something, but they were honestly pretty useless for dense overlapping objects! 
+- Learned how to fine-tune YOLOv8 and it was a lot easier than I expected using the Ultralytics library.
+- MPS acceleration on M2 mac is super powerful, it saved me from having to use Colab or rent a cloud GPU.
