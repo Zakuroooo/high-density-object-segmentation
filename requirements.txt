@@ -7,3 +7,9 @@ scikit-image
 scikit-learn
 tqdm
 jupyter
+# Phase 2 — Deep Learning
+ultralytics
+torch
+torchvision
+pandas
+seaborn
