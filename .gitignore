@@ -1,5 +1,8 @@
-# Data directory
+# Data directory (too large for GitHub)
 data/
+
+# YOLOv8 training outputs (too large for GitHub)
+runs/
 
 # Python
 __pycache__/
@@ -15,3 +18,7 @@ __pycache__/
 # Virtual environments
 venv/
 .env/
+
+# Model weights (downloaded automatically)
+*.pt
+*.pth
