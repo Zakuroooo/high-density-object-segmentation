@@ -459,6 +459,20 @@ Colour encodes mean IoU per image.}
 \label{fig:dleval}
 \end{figure}
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/figures/yolo_predictions_grid.png}
+\caption{YOLOv8s-seg: Sample predictions on the test set.}
+\label{fig:yologrid}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/figures/dl_successes.png}
+\caption{YOLOv8s-seg: Successful instances of dense object segmentation.}
+\label{fig:dlsuccess}
+\end{figure}
+
 \subsection{Ablation Table}
 
 Table~\ref{tab:ablation} presents the full comparison of all three methods
@@ -476,7 +490,7 @@ accuracy metric).
 \midrule
 Watershed          & Baseline     & $\sim$0.05 & 24.0\% & $\sim$8    \\
 KMeans ($k{=}5$)  & Baseline     & $\sim$0.01 & 0.0\%  & $\sim$45   \\
-YOLOv8s-seg (ours) & Deep Learn  & [actual]   & [actual]\% & [actual]\\
+YOLOv8s-seg (ours) & Deep Learn  & 0.523   & 58.0\% & 1650.9\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -525,6 +539,13 @@ Our failure analysis (Section~9 notebook) reveals three recurring patterns:
     \item \textbf{Unusual lighting}: Motion blur or over-exposure reduces
           activation magnitudes below the confidence threshold (0.25).
 \end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../results/figures/dl_failures.png}
+\caption{YOLOv8s-seg: Common failure modes including occlusion and lighting issues.}
+\label{fig:dlfail}
+\end{figure}
 
 \subsection{Motivation for Phase 3 — Hybrid Approach}
 

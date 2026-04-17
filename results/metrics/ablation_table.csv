@@ -1,0 +1,4 @@
+Method,Type,Mean IoU,Count Acc%,Inf Time (ms)
+Watershed,Baseline,0.05,24.0,8.0
+KMeans,Baseline,0.05,24.0,8.0
+YOLOv8s-seg (ours),Deep Learning,0.523,58.0,1650.9

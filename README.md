@@ -23,7 +23,7 @@ down. This project quantifies exactly how much, then shows how much deep learnin
 |--------|------|----------|--------------|----------|
 | Watershed | Classical | ~0.05 | 24.0% | ~8 ms |
 | KMeans (k=5) | Classical | ~0.01 | 0.0% | ~45 ms |
-| YOLOv8s-seg | Deep Learning | [run notebook] | [run notebook] | [run notebook] |
+| YOLOv8s-seg | Deep Learning | 0.523 | 58.0% | ~1651 ms |
 
 > **M2 Mac users** — MPS (Metal Performance Shaders) acceleration is **automatic**.
 > The code detects Apple MPS and uses your M2 GPU without any extra configuration.
