@@ -10,13 +10,9 @@ Complete 3-phase project for High-Density Object Segmentation.
 
 ## Project Overview
 
-A research project systematically comparing **classical**, **deep-learning**, and **hybrid** approaches to
-object instance segmentation in high-density images (5–50 objects per image) from the
-COCO val2017 dataset.
+A research project systematically comparing **classical**, **deep-learning**, and **hybrid** approaches to object instance segmentation in high-density images (5–50 objects per image) from the COCO val2017 dataset.
 
-**Why?** Crowded scenes (retail shelves, crowds, cell images) are where classical methods break
-down. This project quantifies exactly how much, shows how deep learning improves matters,
-and demonstrates that a **hybrid system** combining both paradigms achieves the best results.
+**Why?** Crowded scenes (retail shelves, crowds, cell images) are where classical methods break down. This project quantifies exactly how much, shows how deep learning improves matters, and demonstrates that a **hybrid system** combining both paradigms achieves the best results.
 
 ---
 
@@ -26,16 +22,14 @@ and demonstrates that a **hybrid system** combining both paradigms achieves the 
 |--------|------|----------|--------------|-----|----------|
 | Watershed | Classical ML | ~0.05 | 24.0% | 8.47 | ~8 ms |
 | KMeans (k=5) | Classical ML | ~0.01 | 0.0% | 115.51 | ~45 ms |
-| YOLOv8s-seg (Phase 2) | Deep Learning | 0.523 | 58.0% | 8.47 | ~33 ms |
-| **Hybrid V3 (Phase 3)** | **Hybrid DL+ML** | **0.523+** | **66.0%** | **3.19** | **~59 ms** |
+| YOLOv8s-seg (Phase 2) | Deep Learning | 0.523 | 64.0% | 3.16 | ~18 ms |
+| **Hybrid Final (Phase 3)** | **Hybrid DL+ML** | **0.523+** | **67.0%** | **3.09** | **~65 ms** |
 
-> **Phase 3 Highlights:** 66% accuracy (+8% over YOLOv8), MAE 3.19 (-62.3% error reduction),
-> dense mode triggered on 91/100 test images.
+> **Phase 3 Highlights:** 67% accuracy (+3% over YOLOv8, +43% over Watershed), MAE 3.09, dense mode triggered on 89/100 test images. Hybrid uses conditional Watershed coupling — only activates when YOLO likely missed objects.
 
 ---
 
 ## Folder Structure
-
 ```
 high-density-object-segmentation/
 ├── data/                          ← COCO dataset (git-ignored)
@@ -95,29 +89,12 @@ jupyter notebook notebooks/02_baseline_ml.ipynb
 # 1. Install Phase 2 dependencies
 pip install ultralytics torch torchvision pandas seaborn
 
-# 2. Prepare YOLO-format dataset (creates data/yolo/ and results/metrics/data_split.json)
+# 2. Prepare YOLO-format dataset
 python src/prepare_yolo_data.py
 
-# 3. (Optional) Generate architecture diagram
-python src/create_architecture_diagram.py
-
-# 4. Run the Phase 2 notebook (training + evaluation + ablation table)
+# 3. Run the Phase 2 notebook
 jupyter notebook notebooks/03_deep_learning.ipynb
 ```
-
-> **Note for M2 Mac users:** MPS acceleration is automatic — no configuration needed.
-> Training 10 epochs on 400 images takes approximately 5–15 minutes on M2.
-
----
-
-## Phase 1 Results
-
-Tested on 100 randomly sampled dense images (5-50 objects). Ground truth average ≈ 12 objects/image.
-
-- **Watershed:** Average predicted ~4 objects. Severely under-counted — touching objects merge into one basin.
-- **KMeans (k=5):** Average predicted ~127 regions. Severely over-counted — single objects split across multiple colour clusters.
-
-**Conclusion:** Classical algorithms fail at occlusion and scale variation. Phase 2 uses YOLOv8.
 
 ---
 
@@ -126,19 +103,28 @@ Tested on 100 randomly sampled dense images (5-50 objects). Ground truth average
 1. Open `notebooks/04_hybrid_colab.ipynb` in [Google Colab](https://colab.research.google.com)
 2. Set runtime to **T4 GPU** (Runtime → Change runtime type)
 3. Run all cells in order
-4. The Gradio UI cell launches a **public URL** (valid 72 hours) for interactive demo
 
-**Hybrid V3 Strategy:**
-- Density-aware dual threshold: normal (conf=0.25) + dense (conf=0.15)
-- Weighted fusion: `final = 0.4 × normal + 0.6 × dense`
-- Dense mode triggers when edge_density > 0.08 OR count ≥ 12
-- Conditional coupling (not sequential pipeline)
+**Hybrid Final Strategy:**
+- Run YOLOv8 at conf=0.25, iou=0.45
+- Estimate density via Canny edge density
+- If dense (edge_density > 0.08 OR count ≥ 10): run Watershed
+- If Watershed count > 120% of YOLO count: blend = 0.8 × YOLO + 0.2 × Watershed
+- Otherwise trust YOLO completely
+- Conditional coupling — Watershed only activates when YOLO likely missed objects
+
+---
+
+## Phase 1 Results
+
+Tested on 100 randomly sampled dense images (5–50 objects). Ground truth average ≈ 12 objects/image.
+
+- **Watershed:** Average predicted ~4 objects. Severely under-counted.
+- **KMeans (k=5):** Average predicted ~127 regions. Severely over-counted.
 
 ---
 
 ## Report
 
-To compile the LaTeX report:
 ```bash
 cd report
 pdflatex main.tex
@@ -162,8 +148,7 @@ pdflatex main.tex
 
 ---
 
-## What I learned
-- Classical methods are honestly pretty useless for dense overlapping objects!
-- Fine-tuning YOLOv8 was easier than expected using the Ultralytics library.
-- MPS acceleration on M2 Mac is super powerful.
-- **Hybrid approaches work:** combining deep learning with density-aware classical methods gives the best results (66% vs 58% YOLOv8-only).
+## What I Learned
+- Classical methods fail for dense overlapping objects.
+- Fine-tuning YOLOv8 was straightforward using the Ultralytics library.
+- **Hybrid approaches work:** combining deep learning with density-aware classical methods gives the best results — 67% vs 64% YOLOv8-only, MAE improved from 3.16 to 3.09.
