@@ -1,0 +1,19 @@
+{
+  "hybrid_v3": {
+    "accuracy_percent": 66.0,
+    "mae": 3.19,
+    "avg_time_ms": 58.9,
+    "dense_mode_triggered": 91,
+    "total_test_images": 100
+  },
+  "yolo_only": {
+    "accuracy_percent": 58.0,
+    "mae": 8.47,
+    "avg_time_ms": 33.0
+  },
+  "comparison": {
+    "accuracy_improvement": 8.0,
+    "mae_improvement": 5.28,
+    "mae_improvement_percent": 62.3
+  }
+}

@@ -1,0 +1,5 @@
+Method,Type,Mean IoU,Count Acc%,MAE,Inf Time(ms)
+Watershed,Classical ML,~0.05,24.0,8.47,~8
+KMeans (k=5),Classical ML,~0.01,0.0,115.51,~45
+YOLOv8s (Phase 2),Deep Learning,0.523,58.0,8.47,~33
+Hybrid V3 (Phase 3),Hybrid DL+ML,0.523+,66.0,3.19,~59

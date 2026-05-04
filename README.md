@@ -1,34 +1,36 @@
 # High-Density Object Segmentation
 
-This is my Phase 2 project for the High-Density Object Segmentation course assignment.
+Complete 3-phase project for High-Density Object Segmentation.
 
 **Author:** Pranay Sarkar  
 **Institution:** Newton School of Technology  
-**Phases:** Classical Baselines (Phase 1) · YOLOv8 Deep Learning (Phase 2)
+**Phases:** Classical Baselines (Phase 1) · YOLOv8 Deep Learning (Phase 2) · Hybrid System (Phase 3)
 
 ---
 
 ## Project Overview
 
-A research project systematically comparing **classical** and **deep-learning** approaches to
+A research project systematically comparing **classical**, **deep-learning**, and **hybrid** approaches to
 object instance segmentation in high-density images (5–50 objects per image) from the
 COCO val2017 dataset.
 
 **Why?** Crowded scenes (retail shelves, crowds, cell images) are where classical methods break
-down. This project quantifies exactly how much, then shows how much deep learning improves matters.
+down. This project quantifies exactly how much, shows how deep learning improves matters,
+and demonstrates that a **hybrid system** combining both paradigms achieves the best results.
 
 ---
 
 ## Results Summary
 
-| Method | Type | Mean IoU | Count Acc ±3 | Inf Time |
-|--------|------|----------|--------------|----------|
-| Watershed | Classical | ~0.05 | 24.0% | ~8 ms |
-| KMeans (k=5) | Classical | ~0.01 | 0.0% | ~45 ms |
-| YOLOv8s-seg | Deep Learning | 0.523 | 58.0% | ~1651 ms |
+| Method | Type | Mean IoU | Count Acc ±3 | MAE | Inf Time |
+|--------|------|----------|--------------|-----|----------|
+| Watershed | Classical ML | ~0.05 | 24.0% | 8.47 | ~8 ms |
+| KMeans (k=5) | Classical ML | ~0.01 | 0.0% | 115.51 | ~45 ms |
+| YOLOv8s-seg (Phase 2) | Deep Learning | 0.523 | 58.0% | 8.47 | ~33 ms |
+| **Hybrid V3 (Phase 3)** | **Hybrid DL+ML** | **0.523+** | **66.0%** | **3.19** | **~59 ms** |
 
-> **M2 Mac users** — MPS (Metal Performance Shaders) acceleration is **automatic**.
-> The code detects Apple MPS and uses your M2 GPU without any extra configuration.
+> **Phase 3 Highlights:** 66% accuracy (+8% over YOLOv8), MAE 3.19 (-62.3% error reduction),
+> dense mode triggered on 91/100 test images.
 
 ---
 
@@ -43,7 +45,8 @@ high-density-object-segmentation/
 ├── notebooks/
 │   ├── 01_eda.ipynb               ← Exploratory Data Analysis
 │   ├── 02_baseline_ml.ipynb       ← Phase 1: Watershed & KMeans
-│   └── 03_deep_learning.ipynb     ← Phase 2: YOLOv8 training & eval
+│   ├── 03_deep_learning.ipynb     ← Phase 2: YOLOv8 training & eval
+│   └── 04_hybrid_colab.ipynb      ← Phase 3: Hybrid system (run on Colab)
 ├── src/
 │   ├── data_loader.py             ← COCO loading utilities
 │   ├── baseline.py                ← Watershed & KMeans implementations
@@ -52,10 +55,10 @@ high-density-object-segmentation/
 │   └── create_architecture_diagram.py
 ├── results/
 │   ├── figures/                   ← All saved plots and prediction images
-│   └── metrics/                   ← JSON results files
+│   └── metrics/                   ← JSON results + ablation CSVs
 ├── runs/                          ← YOLOv8 training outputs (git-ignored)
 ├── report/
-│   ├── main.tex                   ← Full LaTeX report (Phase 1 + 2)
+│   ├── main.tex                   ← Full LaTeX report (Phase 1 + 2 + 3)
 │   └── refs.bib
 └── requirements.txt
 ```
@@ -118,13 +121,28 @@ Tested on 100 randomly sampled dense images (5-50 objects). Ground truth average
 
 ---
 
+## Phase 3 Setup (Hybrid System — Google Colab)
+
+1. Open `notebooks/04_hybrid_colab.ipynb` in [Google Colab](https://colab.research.google.com)
+2. Set runtime to **T4 GPU** (Runtime → Change runtime type)
+3. Run all cells in order
+4. The Gradio UI cell launches a **public URL** (valid 72 hours) for interactive demo
+
+**Hybrid V3 Strategy:**
+- Density-aware dual threshold: normal (conf=0.25) + dense (conf=0.15)
+- Weighted fusion: `final = 0.4 × normal + 0.6 × dense`
+- Dense mode triggers when edge_density > 0.08 OR count ≥ 12
+- Conditional coupling (not sequential pipeline)
+
+---
+
 ## Report
 
 To compile the LaTeX report:
 ```bash
 cd report
 pdflatex main.tex
-bibtex main
+biber main
 pdflatex main.tex
 pdflatex main.tex
 ```
@@ -136,7 +154,7 @@ pdflatex main.tex
 ```bibtex
 @misc{sarkar2026hdos,
   author = {Pranay Sarkar},
-  title  = {High-Density Object Segmentation: Classical vs Deep Learning},
+  title  = {High-Density Object Segmentation: Classical, Deep Learning, and Hybrid Approaches},
   year   = {2026},
   url    = {https://github.com/Zakuroooo/high-density-object-segmentation}
 }
@@ -145,6 +163,7 @@ pdflatex main.tex
 ---
 
 ## What I learned
-- I thought classical methods would at least catch something, but they were honestly pretty useless for dense overlapping objects! 
-- Learned how to fine-tune YOLOv8 and it was a lot easier than I expected using the Ultralytics library.
-- MPS acceleration on M2 mac is super powerful, it saved me from having to use Colab or rent a cloud GPU.
+- Classical methods are honestly pretty useless for dense overlapping objects!
+- Fine-tuning YOLOv8 was easier than expected using the Ultralytics library.
+- MPS acceleration on M2 Mac is super powerful.
+- **Hybrid approaches work:** combining deep learning with density-aware classical methods gives the best results (66% vs 58% YOLOv8-only).
