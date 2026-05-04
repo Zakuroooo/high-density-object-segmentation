@@ -1,19 +1,30 @@
 {
-  "hybrid_v3": {
-    "accuracy_percent": 66.0,
-    "mae": 3.19,
-    "avg_time_ms": 58.9,
-    "dense_mode_triggered": 91,
-    "total_test_images": 100
+  "hybrid_final": {
+    "accuracy_percent": 67.0,
+    "mae": 3.09,
+    "avg_time_ms": 65.0,
+    "dense_mode_triggered": 89,
+    "total_test_images": 100,
+    "yolo_weight": 0.8,
+    "watershed_weight": 0.2
   },
   "yolo_only": {
-    "accuracy_percent": 58.0,
-    "mae": 8.47,
-    "avg_time_ms": 33.0
+    "accuracy_percent": 64.0,
+    "mae": 3.16,
+    "avg_time_ms": 17.5
+  },
+  "phase1_watershed": {
+    "accuracy_percent": 24.0,
+    "mae": 8.47
+  },
+  "phase1_kmeans": {
+    "accuracy_percent": 0.0,
+    "mae": 115.51
   },
   "comparison": {
-    "accuracy_improvement": 8.0,
-    "mae_improvement": 5.28,
-    "mae_improvement_percent": 62.3
+    "accuracy_improvement_over_yolo": 3.0,
+    "mae_improvement_over_yolo": 0.07,
+    "accuracy_improvement_over_watershed": 43.0,
+    "mae_improvement_over_watershed": 5.38
   }
 }
