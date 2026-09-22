@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>High-Density Object Segmentation</title>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #ffffff; --line: #e4e3df;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #85837c;
+    --accent: #1baf7a; --warn: #eda100; --blue: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #232322; --line: #34332f;
+      --ink: #ffffff; --ink-2: #c3c2b7; --ink-3: #8d8b82;
+      --accent: #199e70; --warn: #c98500; --blue: #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface); color: var(--ink);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 20px 80px; }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .sub { color: var(--ink-2); margin: 0 0 28px; font-size: 16px; }
+  a { color: var(--blue); }
+  code { background: var(--panel); border: 1px solid var(--line);
+         padding: 1px 5px; border-radius: 4px; font-size: 0.88em; }
+
+  .card { background: var(--panel); border: 1px solid var(--line);
+          border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+
+  #drop { border: 2px dashed var(--line); border-radius: 12px; padding: 28px;
+          text-align: center; cursor: pointer; transition: border-color .15s; }
+  #drop.over { border-color: var(--accent); }
+  #preview { max-width: 100%; max-height: 320px; border-radius: 8px; }
+  .samples { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+             margin-top: 14px; }
+  .sample { width: 96px; height: 68px; object-fit: cover; border-radius: 6px;
+            cursor: pointer; border: 2px solid transparent; }
+  .sample:hover { border-color: var(--accent); }
+
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+           padding: 10px 20px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  button:disabled { background: var(--ink-3); cursor: not-allowed; }
+
+  .status { color: var(--ink-2); font-size: 14px; margin: 14px 0 0; }
+  .status.busy::after { content: "…"; }
+
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .panes { grid-template-columns: 1fr; } }
+  .pane h3 { margin: 0 0 4px; font-size: 15px; }
+  .pane .meta { color: var(--ink-2); font-size: 13px; margin: 0 0 10px; }
+  .pane canvas { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+  .big { font-size: 22px; font-weight: 700; color: var(--ink); }
+
+  .gate { background: var(--surface); border-left: 3px solid var(--warn);
+          padding: 12px 14px; border-radius: 0 8px 8px 0; margin-top: 18px;
+          font-size: 14px; color: var(--ink-2); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.best td { font-weight: 700; }
+  .scroll { overflow-x: auto; }
+  .note { color: var(--ink-3); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>High-Density Object Segmentation</h1>
+  <p class="sub">
+    Counting objects in crowded scenes, where classical computer vision breaks down.
+    The model runs <strong>entirely in your browser</strong> — nothing is uploaded anywhere.
+  </p>
+
+  <div class="card">
+    <div id="drop">
+      <div id="dropHint">
+        <p style="margin:0 0 10px"><strong>Drop a crowded photo here</strong>, or
+          <label style="color:var(--blue);cursor:pointer;text-decoration:underline">
+            choose a file<input id="file" type="file" accept="image/*" hidden>
+          </label>
+        </p>
+        <p class="note" style="margin:0">A street, a shelf, a crowd — the more objects, the more interesting.</p>
+      </div>
+      <img id="preview" hidden alt="">
+    </div>
+    <div class="samples">
+      <img class="sample" data-src="samples/sample1.jpg" src="samples/sample1.jpg" alt="Sample crowded scene 1">
+      <img class="sample" data-src="samples/sample2.jpg" src="samples/sample2.jpg" alt="Sample crowded scene 2">
+      <img class="sample" data-src="samples/sample3.jpg" src="samples/sample3.jpg" alt="Sample crowded scene 3">
+    </div>
+    <p class="note" style="text-align:center;margin:8px 0 0">Or try one of these held-out test images (34, 33 and 29 objects).</p>
+    <div style="margin-top:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <button id="run" disabled>Segment</button>
+      <p id="status" class="status">Starting…</p>
+    </div>
+  </div>
+
+  <div class="card" id="results" hidden>
+    <div class="panes">
+      <div class="pane">
+        <h3>Detector alone</h3>
+        <p class="meta">conf 0.25 · NMS IoU 0.45 — <span class="big" id="nBase">0</span> objects · <span id="tBase"></span></p>
+        <canvas id="canvasBase"></canvas>
+      </div>
+      <div class="pane">
+        <h3>Density-aware hybrid</h3>
+        <p class="meta">gated relaxed pass — <span class="big" id="nHybrid">0</span> objects · <span id="tHybrid"></span></p>
+        <canvas id="canvasHybrid"></canvas>
+      </div>
+    </div>
+    <div class="gate" id="gate"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">How it works</h3>
+    <p style="color:var(--ink-2)">
+      A detector tuned for ordinary scenes suppresses real objects in crowded ones:
+      non-maximum suppression removes overlapping boxes on the assumption that overlap
+      means duplication, which is wrong in a crowd. So the method measures crowding
+      <em>first</em> — with a cheap Canny edge-density test — and only then relaxes the
+      detector's confidence floor and NMS threshold.
+    </p>
+    <p style="color:var(--ink-2)">
+      The gate deliberately uses edge density rather than the detector's own count: if the
+      detector has already missed the crowd, its count cannot be the evidence that a crowd
+      is there.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Measured results</h3>
+    <p class="note" style="margin-top:0">
+      All four methods scored in one run on the same 50 held-out COCO val2017 test images
+      (5–50 objects each), same metric definitions, same device. Seed 1337.
+    </p>
+    <div class="scroll">
+    <table>
+      <thead><tr>
+        <th>Method</th><th>Type</th><th class="num">Mean IoU</th>
+        <th class="num">Count acc. (±3)</th><th class="num">MAE</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Watershed</td><td>Classical</td><td class="num">0.065</td><td class="num">28%</td><td class="num">8.66</td></tr>
+        <tr><td>KMeans (k=5)</td><td>Classical</td><td class="num">0.252</td><td class="num">0%</td><td class="num">114.86</td></tr>
+        <tr><td>YOLOv8s-seg (fine-tuned)</td><td>Deep learning</td><td class="num">0.429</td><td class="num">52%</td><td class="num">4.28</td></tr>
+        <tr class="best"><td>Hybrid (density-aware)</td><td>Hybrid</td><td class="num">0.456</td><td class="num">64%</td><td class="num">3.30</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="note">
+      <strong>The KMeans row is the instructive one.</strong> It scores a respectable 0.252 IoU
+      while getting the count right on <em>zero</em> images — it emits 127 masks per image
+      against 12.6 real objects, so greedy matching finds overlap by volume rather than by
+      segmenting well. Mean IoU alone cannot distinguish that from working.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">An honest note on this demo</h3>
+    <p style="color:var(--ink-2);margin-bottom:0">
+      This page runs the detector and the density gate, not the Watershed cross-check —
+      that would need OpenCV compiled to WebAssembly for a component an ablation showed
+      contributes <strong>6%</strong> of the method's improvement (3 of 49 objects of
+      recovered counting error, firing on 4 of 50 test images). The full four-way
+      comparison, the ablation and the report are in the
+      <a href="https://github.com/Zakuroooo/high-density-object-segmentation">repository</a>.
+    </p>
+  </div>
+
+  <p class="note">
+    Pranay Sarkar ·
+    <a href="https://github.com/Zakuroooo/high-density-object-segmentation">Source &amp; 18-page report</a>
+  </p>
+
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
