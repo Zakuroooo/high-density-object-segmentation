@@ -1,0 +1,12 @@
+{
+  "experiment_version": "2.0",
+  "date": "2026-09-22",
+  "base_model": "yolov8s-seg.pt",
+  "epochs": 10,
+  "imgsz": 640,
+  "batch": 16,
+  "seed": 1337,
+  "device": "cuda",
+  "weights": "yolov8s-seg-dense.pt",
+  "size_mb": 23.9
+}
