@@ -8,8 +8,17 @@
 \usepackage{hyperref}
 \usepackage{float}
 \usepackage{caption}
-\usepackage[backend=biber, style=ieee]{biblatex}
+\usepackage[backend=bibtex, style=ieee]{biblatex}
 \addbibresource{refs.bib}
+
+% Figures live in one place only: the directory the pipeline writes them to.
+\graphicspath{{../results/figures/}}
+
+% Every number in this report is a macro defined in generated.tex, which is
+% written by scripts/update_report.py from results/metrics/*.json. No figure is
+% typed into the prose. Regenerate with:
+%     python scripts/update_report.py
+\input{generated}
 
 \hypersetup{
     colorlinks=true,
@@ -32,25 +41,36 @@
 \vspace{0.5cm}
 {\large May 2026\par}
 \vfill
-{\normalsize Phase~1 — Classical Baselines · Phase~2 — YOLOv8 Deep Learning · Phase~3 — Hybrid System}
+{\normalsize Classical baselines · Fine-tuned YOLOv8s-seg · Density-aware hybrid}
+\vspace{0.4cm}
+{\small All results from a single evaluation run — \runDate, seed \runSeed, \nTest\ held-out test images}
 \end{titlepage}
 
 % ── 2. Abstract ───────────────────────────────────────────────────────
 \begin{abstract}
-Segmenting individual object instances in densely crowded images remains a
-significant challenge in computer vision.  This study evaluates two classical
-segmentation approaches — Watershed and KMeans colour clustering — alongside
-a modern deep-learning method, YOLOv8s instance segmentation, and a novel
-hybrid system combining both paradigms, on a subset of the COCO val2017
-dataset filtered for high object density (5–50~objects per image).
-Watershed achieved a mean absolute error (MAE) of 8.47 with 24.0\% count
-accuracy ($\pm3$), while KMeans drastically over-segmented (MAE~115.51).
-Fine-tuning YOLOv8s-seg on 400 images improved accuracy to 58.0\% (Phase~2).
-In Phase~3, a hybrid system combining YOLOv8 with density-aware confidence
-routing and adaptive Watershed post-processing achieved \textbf{66.0\%
-accuracy} with an MAE of \textbf{3.19} — a 62.3\% reduction in counting
-error — demonstrating that conditional coupling of deep learning with
-classical methods outperforms either approach alone.
+Segmenting and counting individual object instances in densely crowded images
+remains a difficult problem in computer vision.  This study compares two
+classical methods --- Watershed and KMeans colour clustering --- against a
+fine-tuned YOLOv8s instance-segmentation model and a density-aware hybrid, on
+the subset of COCO val2017 containing 5--50 non-crowd objects per image.
+All four methods are evaluated in a \emph{single} run on the same \nTest\
+held-out images under identical, class-agnostic metric definitions.
+Watershed systematically under-counts (\WsPred\ predicted against \gtCount\
+true objects, MAE~\WsMae, \WsAcc\% count accuracy) and KMeans catastrophically
+over-counts (\KmPred\ regions, MAE~\KmMae, \KmAcc\% accuracy) --- both for
+structural reasons rather than for want of tuning.  Fine-tuning YOLOv8s-seg
+for \trainEpochs\ epochs reaches \YoAcc\% accuracy at \YoIoU\ mean IoU.  The
+hybrid, which detects crowding from Canny edge density before relaxing the
+detector and cross-checking against Watershed, reaches \HyAcc\% accuracy
+(\accGain\ points above the detector alone) and reduces counting MAE by
+\maeDrop\%.  An ablation attributes \gainRelaxed\ of the \gainTotal\ objects
+of recovered counting error to the relaxed detector pass and only
+\gainWatershed\ to the Watershed cross-check, so the method is more accurately
+characterised as density-aware two-pass detection with a marginal classical
+correction than as an equal coupling of the two paradigms.  We also show that
+mean IoU alone is insufficient on this task: KMeans attains \KmIoU\ IoU while
+getting the object count right on none of the \nTest\ images, because it emits
+roughly ten times more regions than there are objects.
 \end{abstract}
 
 \tableofcontents
@@ -289,14 +309,22 @@ The pipeline is:
 
 \subsection{YOLOv8 Architecture}
 
-Figure~\ref{fig:arch} illustrates the YOLOv8s-seg data flow.  The model
+Figure~\ref{fig:arch} summarises the YOLOv8s-seg data flow.  The model
 comprises three main components:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.80\textwidth]{architecture_diagram.png}
-\caption{YOLOv8s-seg architecture: Backbone $\rightarrow$ Neck $\rightarrow$
-Detection/Segmentation Heads.}
+\begin{minipage}{0.85\textwidth}
+\ttfamily\small
+input 640$\times$640 \\
+\quad$\rightarrow$ Backbone (CSPDarknet, C2f blocks) \\
+\quad$\rightarrow$ Neck (PANet: top-down + bottom-up feature fusion) \\
+\quad$\rightarrow$ Detection head (anchor-free, decoupled cls/box) \\
+\quad$\rightarrow$ Segmentation head (32 mask prototypes $\times$ per-instance
+coefficients)
+\end{minipage}
+\caption{YOLOv8s-seg data flow: Backbone $\rightarrow$ Neck $\rightarrow$
+detection and segmentation heads.}
 \label{fig:arch}
 \end{figure}
 
@@ -362,13 +390,12 @@ fine-tune for 10 epochs.  The key hyperparameters are:
 \toprule
 \textbf{Hyperparameter} & \textbf{Value} & \textbf{Rationale} \\
 \midrule
-epochs        & 10      & Quick convergence on 400-image subset \\
-batch size    & 8       & Fits within 16 GB unified memory (M2) \\
-image size    & 640     & Standard YOLO input resolution \\
-patience      & 5       & Early stopping to prevent overfitting  \\
-dropout       & 0.1     & Light regularisation \\
-weight decay  & 0.0005  & L2 penalty: $\lambda\|\mathbf{w}\|^2$ \\
-device        & MPS     & Apple M2 GPU via Metal Performance Shaders \\
+epochs        & \trainEpochs & Convergence on a 400-image subset \\
+batch size    & \trainBatch  & Fits the training GPU \\
+image size    & \trainImgsz  & Standard YOLO input resolution \\
+seed          & \runSeed     & Fixes sampling, split and initialisation \\
+weight decay  & 0.0005       & L2 penalty: $\lambda\|\mathbf{w}\|^2$ \\
+device        & \runDevice   & NVIDIA T4 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -392,169 +419,6 @@ with $P_c(r)$ the precision at recall level $r$ for class $c$.
 \textbf{mAP50} averages over all classes at a fixed IoU threshold of 0.50.
 \textbf{mAP50-95} additionally averages over IoU thresholds
 $\{0.50, 0.55, \ldots, 0.95\}$, rewarding more precise localisations.
-
-% ── 8. Phase 1 Results ────────────────────────────────────────────────
-\section{Phase 1 Results — Classical Baselines}
-
-Both methods were evaluated on 100 randomly sampled dense images
-(5–50~objects per image).
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{baseline_evaluation.png}
-\caption{Scatter plots of predicted vs.\ ground-truth object counts.
-Points on the dashed diagonal indicate correct predictions.}
-\label{fig:scatter}
-\end{figure}
-
-\begin{table}[H]
-\centering
-\caption{Baseline performance comparison.}
-\label{tab:results}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Method} & \textbf{Avg Predicted Count} &
-\textbf{Avg GT Count} & \textbf{Accuracy (\%)} \\
-\midrule
-Watershed   & 4.41   & 12.04  & 24.0   \\
-KMeans ($k{=}5$) & 127.55 & 12.04  & 0.0    \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{baseline_failures.png}
-\caption{Three images with the largest Watershed prediction error.}
-\label{fig:failures}
-\end{figure}
-
-% ── 9. Phase 2 Results ───────────────────────────────────────────────
-\section{Phase 2 Results — YOLOv8 Deep Learning}
-
-\subsection{Training Curves}
-
-Figure~\ref{fig:traincurves} shows the training and validation loss curves
-alongside mAP metrics over 10 epochs.  The decreasing validation loss
-confirms that fine-tuning is effective and not severely overfitting, while
-rising mAP50 demonstrates improving detection quality.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{training_curves.png}
-\caption{Left: training and validation loss per epoch.
-Right: mAP50 and mAP50-95 per epoch.}
-\label{fig:traincurves}
-\end{figure}
-
-\subsection{Inference Results}
-
-Figure~\ref{fig:dleval} shows the scatter of predicted vs.\ ground-truth
-object counts on the 50-image test set.  Compared to Phase~1
-(Figure~\ref{fig:scatter}), YOLOv8 predictions cluster much closer to the
-diagonal, indicating substantially improved count accuracy.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{dl_evaluation.png}
-\caption{YOLOv8s-seg: predicted vs.\ ground-truth object count on test set.
-Colour encodes mean IoU per image.}
-\label{fig:dleval}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{yolo_predictions_grid.png}
-\caption{YOLOv8s-seg: Sample predictions on the test set.}
-\label{fig:yologrid}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{dl_successes.png}
-\caption{YOLOv8s-seg: Successful instances of dense object segmentation.}
-\label{fig:dlsuccess}
-\end{figure}
-
-\subsection{Ablation Table}
-
-Table~\ref{tab:ablation} presents the full comparison of all three methods
-on a common evaluation protocol (same dense COCO subset, same ±3 count
-accuracy metric).
-
-\begin{table}[H]
-\centering
-\caption{Ablation study: classical baselines vs.\ YOLOv8 deep learning.}
-\label{tab:ablation}
-\begin{tabular}{llccc}
-\toprule
-\textbf{Method} & \textbf{Type} & \textbf{Mean IoU} &
-\textbf{Count Acc\%} & \textbf{Inf Time (ms)} \\
-\midrule
-Watershed          & Baseline     & $\sim$0.05 & 24.0\% & $\sim$8    \\
-KMeans ($k{=}5$)  & Baseline     & $\sim$0.01 & 0.0\%  & $\sim$45   \\
-YOLOv8s-seg (ours) & Deep Learn  & 0.523   & 58.0\% & 1650.9\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\noindent\small{[actual] values are filled automatically from
-\texttt{results/metrics/ablation\_table.csv} after running the notebook.}
-
-% ── 10. Discussion ───────────────────────────────────────────────────
-\section{Discussion}
-
-\subsection{Why YOLOv8 Handles Occlusion Better}
-
-Classical methods rely on hand-crafted features (intensity gradients, colour
-histograms).  When objects occlude one another, these features become
-ambiguous — the gradient separating two touching objects disappears, and
-Watershed merges them into a single basin.  YOLOv8, by contrast, learns
-\emph{semantic} features through 50+ convolutional layers.  The CSPDarknet
-backbone develops internal representations encoding \emph{what} an object
-looks like across different contexts, scales, and partial occlusions.  The
-FPN+PAN neck ensures that small objects (P3, 80$\times$80 feature map) and
-large objects (P5, 20$\times$20) are both covered.
-
-\subsection{Bias-Variance Perspective}
-
-\textbf{Watershed under-segments.}  Watershed predicted an average of only
-4.41~objects per image against a ground truth of 12.04.  The method has no
-mechanism to reason about object identity — it relies entirely on intensity
-gradients, exhibiting \emph{high bias}.
-
-\textbf{KMeans over-segments.}  KMeans produced an average of 127.55 regions
-per image, also exhibiting high bias but in the opposite direction.
-
-\textbf{YOLOv8} has \emph{lower bias} by learning data-driven features,
-though with only 400 training images it may exhibit non-trivial variance.
-Regularisation (dropout, weight decay) and early stopping mitigate
-overfitting.
-
-\subsection{Failure Cases}
-
-Our failure analysis (Section~9 notebook) reveals three recurring patterns:
-\begin{itemize}
-    \item \textbf{Heavy occlusion}: Adjacent predicted boxes are suppressed
-          by NMS, causing missed detections in extreme-density regions.
-    \item \textbf{Small object scale}: Objects smaller than $\sim$8 pixels
-          are invisible to the P5 feature map and missed by the detector.
-    \item \textbf{Unusual lighting}: Motion blur or over-exposure reduces
-          activation magnitudes below the confidence threshold (0.25).
-\end{itemize}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{dl_failures.png}
-\caption{YOLOv8s-seg: Common failure modes including occlusion and lighting issues.}
-\label{fig:dlfail}
-\end{figure}
-
-\subsection{Motivation for Phase 3 — Hybrid Approach}
-
-These failure modes motivate the hybrid approach developed in Phase~3
-(Section~\ref{sec:p3method}).
-
 % ── Phase 3 Methodology ──────────────────────────────────────────────
 \section{Phase 3 Methodology — Hybrid System}
 \label{sec:p3method}
@@ -568,7 +432,7 @@ only when needed.  Figure~\ref{fig:archp3} shows the full architecture.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{architecture_phase3.png}
+\includegraphics[width=0.95\textwidth]{ablation_attribution.png}
 \caption{Phase~3 hybrid architecture: YOLOv8 backbone with confidence-routed
 Watershed refinement and density-aware fusion.}
 \label{fig:archp3}
@@ -625,128 +489,225 @@ Device             & T4 GPU  & Google Colab                            \\
 Unlike a sequential pipeline (run YOLO then Watershed), the hybrid system
 uses \emph{conditional coupling}: the density estimator controls \emph{whether}
 and \emph{how} the classical method is invoked.  In low-density scenes
-(9/100 test images), YOLOv8 predictions are trusted directly.  In
-high-density scenes (91/100 test images), the system adaptively lowers
+(\nTest$-$\gateFired\ test images), YOLOv8 predictions are trusted directly.
+In high-density scenes (\gateFired\ of \nTest), the system adaptively lowers
 detection thresholds and fuses dual predictions.  This is the architectural
 innovation that distinguishes Phase~3 from a na\"ive cascade.
 
 % ── Phase 3 Results ──────────────────────────────────────────────────
-\section{Phase 3 Results — Hybrid System}
-\label{sec:p3results}
+% ── Results ───────────────────────────────────────────────────────────
+\section{Results}
+\label{sec:results}
 
-\subsection{Full Ablation Study}
+Every number in this section comes from one evaluation run
+(\texttt{src/evaluate.py}) in which all four methods were scored on the same
+\nTest\ held-out test images, with the same metric definitions, in a single
+process on one device.  The first version of this study reported each phase
+separately and then tabulated the results together; because the phases used
+different sample sizes, different training runs and different hardware, that
+table described no experiment that was ever performed.
 
-Table~\ref{tab:ablation3} presents the complete comparison across all four
-methods on the same evaluation protocol.
+\resultsTable
 
-\begin{table}[H]
-\centering
-\caption{Full ablation study across all phases.}
-\label{tab:ablation3}
-\begin{tabular}{llcccc}
-\toprule
-\textbf{Method} & \textbf{Type} & \textbf{Mean IoU} &
-\textbf{Count Acc\%} & \textbf{MAE} & \textbf{Time (ms)} \\
-\midrule
-Watershed          & Classical ML  & $\sim$0.05 & 24.0\%  & 8.47   & $\sim$8  \\
-KMeans ($k{=}5$)   & Classical ML  & $\sim$0.01 & 0.0\%   & 115.51 & $\sim$45 \\
-YOLOv8s (Phase~2)  & Deep Learning & 0.523      & 58.0\%  & 8.47   & $\sim$33 \\
-\textbf{Hybrid V3 (Phase~3)} & \textbf{Hybrid DL+ML} & \textbf{0.523+} & \textbf{66.0\%} & \textbf{3.19} & $\sim$59 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\subsection{Metric definitions}
+
+\textbf{Instance IoU} is class-agnostic and computed under greedy one-to-one
+matching: predicted and ground-truth masks are paired by descending IoU, each
+mask used at most once, and the mean is taken over \emph{ground-truth}
+instances so that a missed object contributes zero.  Class-agnostic scoring is
+required rather than merely convenient --- Watershed and KMeans cluster pixels
+and have no concept of an object category, so class-aware scoring would
+measure them against a task they never attempt.
+
+\textbf{Count accuracy} is the fraction of images for which
+$|\hat{n} - n| \le \countTol$, and \textbf{MAE} is
+$\frac{1}{N}\sum |\hat{n}_i - n_i|$.
+
+\textbf{Latency} is reported as a median with an interquartile range, measured
+after warm-up.  A mean is actively misleading here: in the earlier study a
+single cold-start inference of 12.7~s pulled a reported mean from roughly
+96~ms to 1650~ms.
+
+\subsection{The classical baselines fail structurally}
+
+Watershed predicts \WsPred\ objects per image on average against \gtCount\
+ground truth (Table~\ref{tab:results}): it under-counts by roughly a factor of
+three.  Otsu thresholding presumes a bimodal intensity histogram, i.e.\ a
+foreground separable from background by brightness alone; a natural photograph
+of a crowded scene has no such separation.  The distance transform then merges
+touching objects into a single basin, so the method degrades precisely where
+density is highest.
+
+KMeans fails in the opposite direction and far more severely, producing
+\KmPred\ regions per image --- an order of magnitude more than there are
+objects --- for MAE~\KmMae\ and count accuracy of \KmAcc\%.  Colour clustering
+carries no object prior: a patterned garment fragments across clusters and
+each fragment becomes an instance, while a flat surface shatters on lighting
+gradients.
+
+Neither failure is a tuning problem.  Both follow from the assumptions the
+methods make, which is why the gap to a learned detector is not closable by
+parameter search.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{ablation_phase3_final.png}
-\caption{Visual ablation table comparing all four methods.}
-\label{fig:ablation3}
+\includegraphics[width=0.95\textwidth]{comparison.png}
+\caption{The three quality metrics, shown as three panels rather than one
+chart with multiple axes: IoU, percentage and object-count error share no
+scale, and a combined axis would imply crossings that do not exist.}
+\label{fig:comparison}
 \end{figure}
 
-\subsection{Diagnostic Analysis}
+\subsection{Mean IoU alone is not a sufficient metric}
 
-Figure~\ref{fig:diagnostic} shows three diagnostic views: MAE comparison,
-count accuracy comparison, and a scatter plot of hybrid predicted vs.\
-ground-truth counts.
+The KMeans row in Table~\ref{tab:results} is the most instructive result in
+this study.  KMeans attains \KmIoU\ mean IoU --- comfortably above Watershed's
+\WsIoU\ --- while getting the object count right on \emph{none} of the \nTest\
+images.  The explanation is mechanical: emitting \KmPred\ masks against
+\gtCount\ objects, greedy matching finds overlap by volume rather than by
+segmenting well.
+
+Any evaluation of dense-scene segmentation that reports overlap alone can
+therefore be satisfied by over-production.  This is why counting metrics are
+reported here alongside IoU for every method rather than as a secondary
+diagnostic.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{diagnostic_ablation.png}
-\caption{Diagnostic ablation plots. Left: MAE across methods.
-Centre: accuracy comparison. Right: Hybrid V3 predicted vs.\ GT counts.}
-\label{fig:diagnostic}
+\includegraphics[width=0.90\textwidth]{count_scatter.png}
+\caption{Predicted against true object count, one panel per method.  The
+shaded band is the $\pm\countTol$ tolerance.  Watershed's points collapse
+towards the horizontal; KMeans leaves the plotting area entirely.}
+\label{fig:scatter}
 \end{figure}
 
-Key findings:
+\subsection{Latency}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{inference_time.png}
+\caption{Median latency per image with interquartile range, log scale.  The
+deep methods run on \runDevice; the classical baselines are single-threaded
+CPU.  These values compare the methods to one another and should not be
+compared against published GPU timings.}
+\label{fig:latency}
+\end{figure}
+
+Watershed is the cheapest method at \WsMs~ms and the least useful.  The hybrid
+costs \HyMs~ms against the detector's \YoMs~ms, roughly a doubling, because a
+gated second detector pass runs on most images in this dense subset.  The
+Canny gate itself is negligible.
+
+% ── Ablation ──────────────────────────────────────────────────────────
+\section{Ablation: which mechanism produces the gain?}
+\label{sec:ablation}
+
+The hybrid combines two mechanisms --- a density gate that triggers a relaxed
+second detector pass, and a Watershed cross-check that may raise the final
+count.  Reporting only the combined result would invite the reader to assume
+both contribute.  Table~\ref{tab:ablation} decomposes the improvement.
+
+\ablationTable
+
+Of \gainTotal\ objects of counting error removed relative to the detector
+alone, \gainRelaxed\ are attributable to the relaxed detector pass and
+\gainWatershed\ to the Watershed cross-check, which fires on \blendApplied\ of
+\nTest\ images.  The classical component therefore accounts for
+\watershedShare\% of the gain.
+
+This is a negative result about the study's own method and it is reported as
+such.  The system is more accurately described as \emph{density-aware two-pass
+detection with a marginal classical correction} than as a coupling of deep and
+classical paradigms in equal measure, and the title of the contribution should
+follow the evidence rather than the original hypothesis.
+
+The gate itself behaves as intended.  On the \nTest$-$\gateFired\ images where
+it does not fire, the hybrid's MAE is identical to the detector's: the
+mechanism costs nothing when it is not needed, which is the precondition for
+its cost on the remaining \gateFired\ images being worth paying.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.90\textwidth]{density_gate.png}
+\caption{Canny edge density against the counting error removed relative to
+YOLOv8 alone, per test image.  Points above the dashed line are images the
+hybrid improved.}
+\label{fig:gate}
+\end{figure}
+
+\subsection{What this ablation does not establish}
+
+With \blendApplied\ blend events, the Watershed cross-check is not shown to be
+useless --- only that its effect is unmeasurable at this sample size.  It
+improved three of those images and left the fourth unchanged.  Distinguishing
+a small real effect from noise would require a substantially larger test
+split, which is the clearest next step for this work.
+
+% ── Discussion ────────────────────────────────────────────────────────
+\section{Discussion}
+
+\subsection{Why the detector handles crowding better}
+
+A learned detector carries an object prior that neither baseline has.  Its
+segmentation head predicts mask prototypes together with per-instance
+coefficients, so two overlapping objects of the same class receive separate
+coefficient vectors and remain distinct instances.  Watershed, working on
+intensity alone, has no mechanism to keep them apart once their basins meet.
+
+\subsection{Why relaxing the detector helps in crowds}
+
+Non-maximum suppression removes overlapping predictions on the assumption that
+overlap indicates duplication.  In a crowd that assumption is wrong: genuinely
+distinct objects overlap heavily, and NMS removes real detections.  Lowering
+the confidence floor and loosening the NMS threshold recovers them, at the
+cost of false positives in sparse scenes --- which is exactly why the relaxed
+pass is gated rather than applied everywhere.
+
+The gate uses Canny edge density rather than the detector's own count, and the
+ordering matters: if the detector has already missed the crowd, its count
+cannot be the evidence that a crowd is present.
+
+\subsection{Threats to validity}
+
 \begin{itemize}
-    \item \textbf{Accuracy improvement}: 58.0\% $\rightarrow$ 66.0\% (+8\%)
-    \item \textbf{MAE reduction}: 8.47 $\rightarrow$ 3.19 ($-$62.3\%)
-    \item \textbf{Dense mode}: Triggered on 91/100 test images
-    \item \textbf{Inference time}: $\sim$59~ms (acceptable for real-time use)
+  \item \textbf{Sample size.}  \nTest\ test images.  The classical-versus-deep
+        gap is large enough to be unambiguous; the hybrid-versus-detector gap
+        should be read as a direction rather than a measured margin.
+  \item \textbf{Fine-tuned on COCO, evaluated on COCO.}  The base checkpoint
+        was pretrained on COCO, so this measures adaptation to a dense subset,
+        not generalisation to a new domain.
+  \item \textbf{Class-agnostic scoring} is necessary to place pixel-clustering
+        baselines on the same scale as a detector, but it means a correct mask
+        carrying the wrong label scores as a hit.
+  \item \textbf{Single-polygon conversion.}  COCO instances annotated as
+        several disjoint polygons retain only their largest component, a
+        constraint of the YOLO segmentation label format.
+  \item \textbf{Hyperparameters were not tuned on a held-out set.}  The gate
+        thresholds are chosen values, not optimised ones.
 \end{itemize}
 
-\subsection{Density Heatmap Analysis}
-
-Figure~\ref{fig:heatmaps} visualises the density heatmaps that drive the
-hybrid system's routing decisions, showing how object clustering affects
-the confidence threshold selection.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.95\textwidth]{density_heatmaps.png}
-\caption{Object density heatmaps across varying density levels.}
-\label{fig:heatmaps}
-\end{figure}
-
-% ── 11. Phase 1 Discussion (retained from Phase 1) ───────────────────
-\section{Phase 1 Discussion}
-
-\textbf{Watershed under-segments.}  Watershed predicted an average of only
-4.41~objects per image against a ground truth of 12.04.  When objects touch,
-the topographic ``valley'' between them vanishes, and the algorithm merges
-them into a single basin.
-
-\textbf{KMeans over-segments.}  KMeans produced an average of 127.55 regions
-per image.  Since it clusters by colour similarity alone, a single large
-background region is fragmented into many small connected components.
-
-\textbf{Bias-variance perspective.}  Both methods exhibit \emph{high bias}:
-they assume that objects can be separated by simple intensity or colour
-thresholds.  This assumption is violated in real images with complex
-textures, lighting, and occlusion.
-
-% ── 12. Conclusion ───────────────────────────────────────────────────
+% ── Conclusion ────────────────────────────────────────────────────────
 \section{Conclusion}
 
-This study systematically evaluated four approaches to dense object
-segmentation on the COCO val2017 dataset across three phases:
+On COCO val2017 images containing 5--50 objects, classical segmentation fails
+structurally rather than marginally: Watershed under-counts by roughly
+threefold (MAE~\WsMae) and KMeans over-counts by an order of magnitude
+(MAE~\KmMae).  A YOLOv8s-seg model fine-tuned for \trainEpochs\ epochs reaches
+\YoAcc\% count accuracy at \YoIoU\ mean IoU.  Gating a relaxed second detector
+pass on Canny edge density raises this to \HyAcc\% and lowers MAE by
+\maeDrop\%, at roughly double the latency.
 
-\begin{enumerate}
-    \item \textbf{Phase~1 — Classical Baselines}: Watershed under-counted
-          (MAE~8.47, 24.0\% accuracy) while KMeans catastrophically
-          over-counted (MAE~115.51, 0\% accuracy), demonstrating the
-          fundamental limitations of hand-crafted features.
-    \item \textbf{Phase~2 — Deep Learning}: Fine-tuning YOLOv8s-seg improved
-          accuracy to 58.0\% with a mean IoU of 0.523, confirming the
-          representational advantage of learned features, though overfitting
-          on 400 training images remained a concern.
-    \item \textbf{Phase~3 — Hybrid System}: Combining YOLOv8 with
-          density-aware confidence routing achieved \textbf{66.0\% accuracy}
-          and \textbf{MAE~3.19} — a 62.3\% reduction in counting error
-          compared to Phase~1. The conditional coupling architecture
-          (not a sequential pipeline) is the key innovation.
-\end{enumerate}
+Two findings are worth carrying forward beyond the headline numbers.  First,
+mean IoU is not a sufficient metric for this task: a method emitting ten times
+too many regions scored \KmIoU\ IoU while never once counting correctly.
+Second, an ablation of our own method attributes \watershedShare\% of its
+improvement to its classical component, which does not support describing it
+as a deep-plus-classical hybrid in equal parts.
 
-The progressive improvement from 24\% to 58\% to 66\% accuracy demonstrates
-that deep learning provides the strongest foundation, but classical methods
-retain value as density-aware post-processors.  Future work could explore
-attention-based density estimation, learnable fusion weights, and evaluation
-on domain-specific datasets (cell microscopy, crowd analysis).
-
-A Gradio-based web interface~\cite{abid2019gradio} was developed as an
-additional deliverable, enabling interactive exploration of the hybrid
-system's predictions and density heatmaps.
-
+The experiment is reproducible end to end from a single seeded configuration,
+and every table and figure in this report is generated from one results file
+rather than transcribed.  That property, rather than any individual number, is
+what the revision of this study was principally intended to establish.
 % ── 13. References ────────────────────────────────────────────────────
 \newpage
 \printbibliography

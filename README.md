@@ -172,6 +172,8 @@ PYTHONPATH=src .venv/bin/python src/evaluate.py            # ALL methods, one ru
 PYTHONPATH=src .venv/bin/python src/figures.py             # figures from that run
 PYTHONPATH=src .venv/bin/python src/ablation.py            # decompose the hybrid
 .venv/bin/python scripts/update_readme.py                  # table from that run
+.venv/bin/python scripts/update_report.py                  # report macros from that run
+cd report && tectonic -X compile main.tex                  # build the PDF
 ```
 
 The fine-tuned checkpoint is committed at `weights/yolov8s-seg-dense.pt`, so
@@ -216,6 +218,7 @@ src/
 scripts/
   build_notebooks.py     notebooks are generated artefacts, not hand-edited
   update_readme.py       results table generated into the README (--check for CI)
+  update_report.py       the report's numbers as LaTeX macros (--check for CI)
 notebooks/
   01_eda.ipynb                  dataset density and split provenance
   02_methods_and_results.ipynb  all four methods on one image, then the numbers
@@ -226,7 +229,9 @@ results/
 weights/
   yolov8s-seg-dense.pt          the fine-tuned checkpoint
 report/
-  main.tex                      LaTeX report
+  main.tex                      LaTeX report — every number is a macro from generated.tex
+  generated.tex                 GENERATED: macros + tables from results/metrics/*.json
+  main.pdf                      compiled report (18 pages)
 space/
   app.py                        Gradio demo
 ```
