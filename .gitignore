@@ -1,24 +1,40 @@
-# Data directory (too large for GitHub)
+# ── Data (re-downloadable; see README "Reproducing the results") ──
 data/
 
-# YOLOv8 training outputs (too large for GitHub)
+# ── Training run artefacts (large, regenerable) ──
 runs/
+train.log
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
-# macOS
-.DS_Store
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Virtual environments
-venv/
-.env/
-
-# Model weights (downloaded automatically)
+# ── Model weights ──
+# The blanket `*.pt` rule that used to live here is why the trained model from
+# the first round was lost: it could never be committed, so nothing could be
+# reproduced or re-run. The fine-tuned checkpoint is ~23 MB — well inside
+# GitHub's limits — and it is the single most useful file in the repository.
 *.pt
 *.pth
+!weights/*.pt
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+
+# ── Jupyter ──
+.ipynb_checkpoints/
+
+# ── macOS ──
+.DS_Store
+
+# ── LaTeX build artefacts ──
+report/*.aux
+report/*.bbl
+report/*.bcf
+report/*.blg
+report/*.log
+report/*.out
+report/*.run.xml
+report/*.toc
+report/*.synctex.gz
