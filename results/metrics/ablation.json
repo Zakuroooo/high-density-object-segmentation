@@ -1,0 +1,77 @@
+{
+  "question": "Which of the hybrid's two mechanisms produces its gain?",
+  "count_tolerance": 3,
+  "overall": {
+    "n": 50,
+    "yolo_mae": 4.28,
+    "hybrid_mae": 3.3,
+    "yolo_within_tol": 26,
+    "hybrid_within_tol": 32,
+    "objects_recovered": 49
+  },
+  "gate_fired": {
+    "n": 41,
+    "yolo_mae": 4.66,
+    "hybrid_mae": 3.46,
+    "yolo_within_tol": 20,
+    "hybrid_within_tol": 26,
+    "objects_recovered": 49
+  },
+  "gate_did_not_fire": {
+    "n": 9,
+    "yolo_mae": 2.56,
+    "hybrid_mae": 2.56,
+    "yolo_within_tol": 6,
+    "hybrid_within_tol": 6,
+    "objects_recovered": 0
+  },
+  "watershed_blend_applied": {
+    "n": 4,
+    "yolo_mae": 5.75,
+    "hybrid_mae": 5.0,
+    "yolo_within_tol": 2,
+    "hybrid_within_tol": 2,
+    "objects_recovered": 3
+  },
+  "attribution": {
+    "total_objects_recovered": 49,
+    "from_watershed_cross_check": 3,
+    "from_relaxed_detector_pass": 46,
+    "watershed_share_pct": 6.1
+  },
+  "per_blended_image": [
+    {
+      "img_id": 288762,
+      "gt": 15,
+      "yolo": 1,
+      "hybrid": 2,
+      "error_before": 14,
+      "error_after": 13
+    },
+    {
+      "img_id": 318114,
+      "gt": 6,
+      "yolo": 5,
+      "hybrid": 6,
+      "error_before": 1,
+      "error_after": 0
+    },
+    {
+      "img_id": 338560,
+      "gt": 12,
+      "yolo": 6,
+      "hybrid": 7,
+      "error_before": 6,
+      "error_after": 5
+    },
+    {
+      "img_id": 506656,
+      "gt": 5,
+      "yolo": 3,
+      "hybrid": 3,
+      "error_before": 2,
+      "error_after": 2
+    }
+  ],
+  "conclusion": "The density-gated relaxed detector pass accounts for 46 of the 49 objects of count-error reduction; the watershed cross-check accounts for 3, firing on only 4 of 50 images. The method is therefore best described as density-aware two-pass detection with a marginal classical correction \u2014 not as an equal partnership between a deep and a classical method. On the 9 images where the gate did not fire, the hybrid is identical to YOLO, which is the intended behaviour: the gate costs nothing when it is not needed."
+}

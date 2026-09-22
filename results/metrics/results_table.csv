@@ -1,0 +1,5 @@
+Method,Type,Mean IoU,Count Acc% (+/-3),MAE,Median Inference (ms)
+Watershed,Classical,0.0653,28.0,8.66,13.3
+KMeans,Classical,0.2516,0.0,114.86,87.8
+YOLOv8s-seg (fine-tuned),Deep Learning,0.4287,52.0,4.28,26.1
+Hybrid (density-aware),Hybrid DL+Classical,0.4559,64.0,3.3,61.6
