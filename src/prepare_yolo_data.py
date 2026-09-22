@@ -17,10 +17,25 @@ Run from the project root:
 
 import os
 import json
+import random
 import shutil
 from pathlib import Path
 
+import numpy as np
 from pycocotools.coco import COCO
+
+from config import (
+    ANN_FILE as CFG_ANN_FILE,
+    IMG_DIR as CFG_IMG_DIR,
+    MAX_OBJECTS,
+    METRICS_DIR,
+    MIN_OBJECTS,
+    SEED,
+    SPLIT,
+    SUBSET_SIZE,
+    YOLO_ROOT as CFG_YOLO_ROOT,
+    YOLO_YAML,
+)
 
 # ── COCO category names in the canonical order (id 1-90, 80 used) ──────────────
 COCO_CATEGORY_NAMES = [
@@ -39,20 +54,20 @@ COCO_CATEGORY_NAMES = [
     "hair drier", "toothbrush",
 ]
 
-# Paths (relative to project root)
-ANN_FILE   = os.path.join("data", "annotations", "annotations", "instances_val2017.json")
-IMG_DIR    = os.path.join("data", "images", "val2017")
-YOLO_ROOT  = os.path.join("data", "yolo")
-YAML_PATH  = os.path.join(YOLO_ROOT, "coco_dense.yaml")
-SPLIT_JSON = os.path.join("results", "metrics", "data_split.json")
+# Paths and sizes come from config.py so nothing is defined twice.
+ANN_FILE   = str(CFG_ANN_FILE)
+IMG_DIR    = str(CFG_IMG_DIR)
+YOLO_ROOT  = str(CFG_YOLO_ROOT)
+YAML_PATH  = str(YOLO_YAML)
+SPLIT_JSON = str(METRICS_DIR / "data_split.json")
 
-TOTAL_SUBSET = 500
-TRAIN_SIZE   = 400
-VAL_SIZE     = 50
-TEST_SIZE    = 50
+TOTAL_SUBSET = SUBSET_SIZE
+TRAIN_SIZE   = SPLIT["train"]
+VAL_SIZE     = SPLIT["val"]
+TEST_SIZE    = SPLIT["test"]
 
 
-def get_dense_images(coco: COCO, min_obj: int = 5, max_obj: int = 50) -> list:
+def get_dense_images(coco: COCO, min_obj: int = MIN_OBJECTS, max_obj: int = MAX_OBJECTS) -> list:
     """
     Filter COCO images to those with annotation count in [min_obj, max_obj].
 
@@ -212,9 +227,10 @@ def write_yaml(yaml_path: str) -> None:
         yaml_path (str): Path to write coco_dense.yaml.
     """
     names_str = "\n".join(f"  - {name}" for name in COCO_CATEGORY_NAMES)
+    abs_root = os.path.abspath(YOLO_ROOT)
     content = f"""\
 # coco_dense.yaml  — YOLO dataset config for dense COCO subset (Phase 2)
-path: ../data/yolo
+path: {abs_root}
 train: images/train
 val: images/val
 test: images/test
@@ -254,14 +270,23 @@ def main():
     dense_ids = get_dense_images(coco)
     print(f"  Found {len(dense_ids)} dense images.")
 
-    # 3. Take first 500
-    subset_ids = dense_ids[:TOTAL_SUBSET]
-    print(f"\n[3] Using first {TOTAL_SUBSET} dense images.")
+    # 3. Draw a RANDOM subset under a fixed seed.
+    #
+    # The first version of this script used `dense_ids[:500]` — the 500 lowest
+    # COCO image ids. COCO ids are not randomly distributed with respect to
+    # content, so that is a non-random sample whose bias cannot be characterised
+    # after the fact. Seeded sampling is both unbiased and exactly reproducible.
+    random.seed(SEED)
+    np.random.seed(SEED)
+    subset_ids = sorted(random.sample(dense_ids, min(TOTAL_SUBSET, len(dense_ids))))
+    print(f"\n[3] Sampled {len(subset_ids)} dense images at random (seed={SEED}).")
 
-    # 4. Split 400/50/50
-    train_ids = subset_ids[:TRAIN_SIZE]
-    val_ids   = subset_ids[TRAIN_SIZE: TRAIN_SIZE + VAL_SIZE]
-    test_ids  = subset_ids[TRAIN_SIZE + VAL_SIZE:]
+    # 4. Shuffle, then split — so the split itself is not ordered by image id.
+    shuffled = subset_ids[:]
+    random.shuffle(shuffled)
+    train_ids = shuffled[:TRAIN_SIZE]
+    val_ids   = shuffled[TRAIN_SIZE: TRAIN_SIZE + VAL_SIZE]
+    test_ids  = shuffled[TRAIN_SIZE + VAL_SIZE: TRAIN_SIZE + VAL_SIZE + TEST_SIZE]
     print(f"\n[4] Split: train={len(train_ids)}  val={len(val_ids)}  test={len(test_ids)}")
 
     # Save split IDs
@@ -272,6 +297,9 @@ def main():
         "test":  test_ids,
         "total_dense_images": len(dense_ids),
         "subset_size": TOTAL_SUBSET,
+        "seed": SEED,
+        "density_range": [MIN_OBJECTS, MAX_OBJECTS],
+        "sampling": "uniform random without replacement, seeded",
     }
     with open(SPLIT_JSON, "w") as f:
         json.dump(split_summary, f, indent=2)
