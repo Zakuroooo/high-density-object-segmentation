@@ -1,0 +1,85 @@
+% ─────────────────────────────────────────────────────────────────────
+% GENERATED FILE — do not edit.
+% Written by scripts/update_report.py from results/metrics/*.json.
+% Every number in main.tex comes from here, so the report cannot drift
+% from the run that produced it.
+% ─────────────────────────────────────────────────────────────────────
+
+\newcommand{\runDate}{2026-09-22}
+\newcommand{\runSeed}{1337}
+\newcommand{\runDevice}{cuda}
+\newcommand{\nTest}{50}
+\newcommand{\countTol}{3}
+\newcommand{\trainEpochs}{10}
+\newcommand{\trainImgsz}{640}
+\newcommand{\trainBatch}{16}
+
+\newcommand{\WsIoU}{0.065}
+\newcommand{\WsAcc}{28}
+\newcommand{\WsMae}{8.66}
+\newcommand{\WsMs}{13}
+\newcommand{\WsPred}{4.2}
+\newcommand{\KmIoU}{0.252}
+\newcommand{\KmAcc}{0}
+\newcommand{\KmMae}{114.86}
+\newcommand{\KmMs}{88}
+\newcommand{\KmPred}{127.5}
+\newcommand{\YoIoU}{0.429}
+\newcommand{\YoAcc}{52}
+\newcommand{\YoMae}{4.28}
+\newcommand{\YoMs}{26}
+\newcommand{\YoPred}{9.1}
+\newcommand{\HyIoU}{0.456}
+\newcommand{\HyAcc}{64}
+\newcommand{\HyMae}{3.30}
+\newcommand{\HyMs}{62}
+\newcommand{\HyPred}{11.4}
+\newcommand{\gtCount}{12.6}
+\newcommand{\gateFired}{41}
+\newcommand{\blendApplied}{4}
+\newcommand{\gainTotal}{49}
+\newcommand{\gainRelaxed}{46}
+\newcommand{\gainWatershed}{3}
+\newcommand{\watershedShare}{6}
+\newcommand{\accGain}{12}
+\newcommand{\maeDrop}{23}
+
+\newcommand{\resultsTable}{%
+\begin{table}[H]
+\centering
+\caption{All four methods evaluated in a single run on the same 50 held-out test images, with identical metric definitions, on one device (\texttt{cuda}, seed 1337, \runDate). Instance IoU is class-agnostic under greedy one-to-one matching; unmatched ground-truth instances score zero and are included in the mean. Latency is a median with an interquartile range.}
+\label{tab:results}
+\begin{tabular}{llrrrr}
+\toprule
+Method & Type & Mean IoU & Count acc.\ ($\pm$3) & MAE & Median (ms) \\
+\midrule
+Watershed & Classical & 0.065 & 28\% & 8.66 & 13 \\
+KMeans ($k{=}5$) & Classical & 0.252 & 0\% & 114.86 & 88 \\
+YOLOv8s-seg (fine-tuned) & Deep learning & 0.429 & 52\% & 4.28 & 26 \\
+\textbf{Hybrid (density-aware)} & Hybrid & \textbf{0.456} & \textbf{64\%} & \textbf{3.30} & 62 \\
+\bottomrule
+\end{tabular}
+\end{table}
+}
+
+\newcommand{\ablationTable}{%
+\begin{table}[H]
+\centering
+\caption{Decomposition of the hybrid's improvement over YOLOv8s-seg alone. The density-gated relaxed detector pass accounts for almost all of it; the watershed cross-check contributes \watershedShare\% while firing on \blendApplied\ of \nTest\ images.}
+\label{tab:ablation}
+\begin{tabular}{lrrr}
+\toprule
+Subset & Images & MAE (YOLO $\rightarrow$ hybrid) & Objects recovered \\
+\midrule
+Gate fired & 41 & 4.66 $\rightarrow$ 3.46 & 49 \\
+Gate did not fire & 9 & 2.56 $\rightarrow$ 2.56 & 0 \\
+\midrule
+\textit{of which:} relaxed pass & -- & -- & \gainRelaxed \\
+\textit{of which:} watershed & \blendApplied & -- & \gainWatershed \\
+\midrule
+\textbf{Total} & \textbf{\nTest} & \textbf{\YoMae\ $\rightarrow$ \HyMae} & \textbf{\gainTotal} \\
+\bottomrule
+\end{tabular}
+\end{table}
+}
+

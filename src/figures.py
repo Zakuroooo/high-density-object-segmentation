@@ -214,11 +214,68 @@ def main() -> None:
     fig_inference(summary, FIGURES_DIR / "inference_time.png")
     fig_density_gate(per_image, FIGURES_DIR / "density_gate.png")
 
+    # Dataset figures need COCO on disk; skip cleanly when it is not there.
+    from config import ANN_FILE
+    if ANN_FILE.exists():
+        fig_dataset(FIGURES_DIR / "density_distribution.png",
+                    FIGURES_DIR / "category_distribution.png")
+    else:
+        print("  (COCO annotations absent — dataset figures skipped)")
+
     prov = data["provenance"]
     print(f"Figures regenerated from {res_path.name} "
           f"(v{prov['experiment_version']}, {prov['date']}, n={prov['n_test_images']})")
     for f in sorted(FIGURES_DIR.glob("*.png")):
         print(f"  {f.relative_to(FIGURES_DIR.parent.parent)}")
+
+
+
+# ── Dataset figures ───────────────────────────────────────────────────────────
+# Kept separate from the results figures: these describe the data and need COCO
+# on disk, whereas everything above is derived purely from the results file.
+
+def fig_dataset(out_density, out_category) -> None:
+    """Density and category distribution of COCO val2017, for the report."""
+    from pycocotools.coco import COCO
+    from config import ANN_FILE, MAX_OBJECTS, MIN_OBJECTS
+
+    coco = COCO(str(ANN_FILE))
+    ids = coco.getImgIds()
+    counts = np.array([len(coco.getAnnIds(imgIds=i, iscrowd=False)) for i in ids])
+
+    fig, ax = plt.subplots(figsize=(8.5, 4))
+    ax.hist(counts, bins=range(0, int(counts.max()) + 2),
+            color=SERIES["yolo"], edgecolor=SURFACE, linewidth=0.4)
+    ax.axvspan(MIN_OBJECTS, MAX_OBJECTS, color=INK_2, alpha=0.10)
+    n_dense = int(((counts >= MIN_OBJECTS) & (counts <= MAX_OBJECTS)).sum())
+    ax.set_xlabel("non-crowd objects per image")
+    ax.set_ylabel("images")
+    ax.set_title(f"Object density in COCO val2017 — shaded band is the dense "
+                 f"subset ({MIN_OBJECTS}–{MAX_OBJECTS} objects, n={n_dense})",
+                 color=INK, pad=10)
+    ax.grid(axis="y", alpha=0.7); ax.set_axisbelow(True)
+    fig.tight_layout(); fig.savefig(out_density, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+    from collections import Counter
+    cat = Counter()
+    for i in ids:
+        for a in coco.loadAnns(coco.getAnnIds(imgIds=i, iscrowd=False)):
+            cat[coco.loadCats(a["category_id"])[0]["name"]] += 1
+    top = cat.most_common(12)[::-1]
+
+    fig, ax = plt.subplots(figsize=(8.5, 5))
+    ax.barh([t[0] for t in top], [t[1] for t in top],
+            color=SERIES["watershed"], edgecolor=SURFACE, linewidth=2)
+    for i, (_, v) in enumerate(top):
+        ax.text(v * 1.01, i, f"{v:,}", va="center", fontsize=9, color=INK)
+    ax.set_xlabel("instances")
+    ax.set_title("Twelve most frequent categories — 'person' dominates, which is "
+                 "why crowding matters", color=INK, pad=10)
+    ax.grid(axis="x", alpha=0.7); ax.set_axisbelow(True)
+    ax.set_xlim(0, max(v for _, v in top) * 1.12)
+    fig.tight_layout(); fig.savefig(out_category, dpi=200, bbox_inches="tight")
+    plt.close(fig)
 
 
 if __name__ == "__main__":
